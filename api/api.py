@@ -24,8 +24,7 @@ def api_id():
 
     # Create an empty list for our results
     results = orchestrator(url)
-
     return jsonify(results)
 
 if __name__ == "__main__":
-    app.run(host='35.198.232.93')
+    app.run(host='0.0.0.0')
