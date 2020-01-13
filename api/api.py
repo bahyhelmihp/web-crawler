@@ -27,4 +27,5 @@ def api_id():
 
     return jsonify(results)
 
-app.run()
+if __name__ == "__main__":
+    application.run(host='0.0.0.0')
