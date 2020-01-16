@@ -90,10 +90,10 @@ def email_matcher(paragraf, url):
             email_code = re.search('data-cfemail="(.+?)"', str(page.content)).group(1)
             email = decode_email(email_code)
             paragraf = paragraf + str(email)
-
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf) or re.search(r'[\w\.-]+@', paragraf)
     except:
-        email_match = None
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf) or re.search(r'[\w\.-]+@', paragraf)
+
     if email_match is not None:
         return 1
     else:
