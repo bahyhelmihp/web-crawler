@@ -17,6 +17,7 @@ import re
 from nltk.tokenize import word_tokenize, RegexpTokenizer
 import nltk
 from random import sample
+from flask import request, jsonify
 nltk.download("stopwords")
 
 user_agent_list = [
@@ -111,7 +112,7 @@ def paragraf_extractor(url):
     try:
         page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)})
         soup = bs(page.content, 'html.parser')
-        all_ps = soup.find_all("p")
+        all_ps = soup.find_all("p") + soup.find_all("em")
 
         list_p = []
         for p in all_ps:
@@ -133,17 +134,13 @@ def broken_link_score(df, hyperlinks):
     rs = (grequests.get(x, headers = {'User-Agent': np.random.choice(user_agent_list)}) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 10)
     
-    dict_res = dict(zip(rs_res, hyperlinks))
-    
-    broken_links = []
-    for response in dict_res:
+    broken_links = {}
+    for response in rs_res:
         if str(response) != '<Response [200]>':
-            broken_links.append(dict_res[response])
+            broken_links[response.request.url] = str(response)
 
     status_not_ok = np.count_nonzero(np.array(rs_res, dtype=str) != '<Response [200]>')
     status_length = len(rs_res)
-    if len(broken_links) == 0:
-        broken_links.append("")
 
     try:
         score = status_not_ok/status_length*100
@@ -151,7 +148,7 @@ def broken_link_score(df, hyperlinks):
         score = 100
 
     res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "broken_link_score": score,\
-                           "broken_links": broken_links}, index=[0])
+                           "broken_links": str(broken_links)}, index=[0])
 
     return res_df
 
