@@ -3,7 +3,7 @@ monkey.patch_all()
 
 import flask
 from flask import request, jsonify
-from webscrap import orchestrator
+from functions import orchestrator
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
@@ -27,4 +27,4 @@ def api_id():
     return jsonify(results)
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run()
