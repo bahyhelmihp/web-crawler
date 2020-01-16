@@ -5,8 +5,6 @@ curious_george.patch_all(thread=False, select=False)
 # -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 # -*- coding: utf-8 -*-
 from requests_html import HTMLSession
-# import dataiku
-# from dataiku import pandasutils as pdu
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 import grequests
@@ -21,21 +19,6 @@ import nltk
 from random import sample
 nltk.download("stopwords")
 
-# # -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# # Read recipe inputs
-# merchants = dataiku.Dataset("merchants")
-# merchants_df = merchants.get_dataframe().drop("No", axis=1)
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# merchants_df = pd.read_excel("merchants.xlsx").drop("No", axis=1)
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# merchants_df
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: MARKDOWN
-# ### Pre-processing
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 user_agent_list = [
 
     #Chrome
@@ -66,7 +49,6 @@ user_agent_list = [
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
 ]
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 def url_format_handler(url):
     """Return url with http/https prefix if not written"""
 
@@ -99,10 +81,48 @@ def decode_email(e):
 
     return de
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: MARKDOWN
-# ### Broken Link
+def email_matcher(paragraf, url):
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
+    ## If using CloudFare, email should be decrypted
+    try:
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)})
+        if re.search('data-cfemail', str(page.content)) is not None:
+            email_code = re.search('data-cfemail="(.+?)"', str(page.content)).group(1)
+            email = decode_email(email_code)
+            paragraf = paragraf + str(email)
+
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
+    except:
+        email_match = None
+    if email_match is not None:
+        return 1
+    else:
+        return 0
+
+def telephone_matcher(paragraf):
+    telephone_match = re.search(r'(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})',\
+                                   paragraf)
+    if telephone_match is not None:
+        return 1
+    else:
+        return 0
+
+def paragraf_extractor(url):
+    try:
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)})
+        soup = bs(page.content, 'html.parser')
+        all_ps = soup.find_all("p")
+
+        list_p = []
+        for p in all_ps:
+            list_p.append(unidecode.unidecode(p.getText()) + "\n")
+
+        paragraf = "".join(list_p)
+    except:
+        paragraf = ""
+
+    return paragraf
+
 def broken_link_score(df, hyperlinks):
     """Return score (percentage) of broken link in a website"""
 
@@ -123,7 +143,6 @@ def broken_link_score(df, hyperlinks):
 
     return res_df
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 def important_links_check(df, hyperlinks):
     """Return boolean of important links (contact, about, tnc) existance"""
 
@@ -145,15 +164,11 @@ def important_links_check(df, hyperlinks):
     & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
     tnc_count = 1 if np.count_nonzero(np.array(hyperlinks)[tnc_mask]) >= 1 else 0
 
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "contact_us_exist": contact_count,\
-                          "about_us_exist": about_count, "tnc_exist": tnc_count}, index=[0])
+    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "link_contact_us_exist": int(contact_count),\
+                          "link_about_us_exist": int(about_count), "link_tnc_exist": int(tnc_count)}, index=[0])
 
     return res_df
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: MARKDOWN
-# ### Contact Us Score
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 def contact_us_score(df, hyperlinks):
     """Return score (percentage) of contact us component in a website"""
 
@@ -166,44 +181,24 @@ def contact_us_score(df, hyperlinks):
     exists = [0,0]
     try:
         contact_link = pd.Series(hyperlinks)[contact_mask].values[0]
-
-        page = requests.get(contact_link, headers = {'User-Agent': np.random.choice(user_agent_list)})
-        soup = bs(page.content, 'html.parser')
-        all_ps = soup.find_all("p")
-
-        list_p = []
-        for p in all_ps:
-            list_p.append(unidecode.unidecode(p.getText()) + "\n")
-
-        paragraf = "".join(list_p)
-
-        ## If using CloudFare, email should be decrypted
-        if re.search('data-cfemail', str(page.content)) is not None:
-            email_code = re.search('data-cfemail="(.+?)"', str(page.content)).group(1)
-            email = decode_email(email_code)
-            paragraf = paragraf + str(email)
-
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
-        if email_match is not None:
-            exists[0] = 1
-
-        telephone_match = re.search(r'(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})',\
-                                   paragraf)
-        if telephone_match is not None:
-            exists[1] = 1
-
-    except IndexError:
+        paragraf = paragraf_extractor(contact_link)
+        exists[0] = 1 if email_matcher(paragraf, contact_link) == 1 else 0
+        exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
+    except:
         exists = [0,0]
 
+    if np.count_nonzero(exists) == 0:
+        base_url = df['Website'].values[0]
+        paragraf = paragraf_extractor(url_format_handler(base_url))
+        exists[0] = 1 if email_matcher(paragraf, url_format_handler(base_url)) == 1 else 0
+        exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
+
     score = np.count_nonzero(np.array(exists))/len(exists)*100
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "contact_us_score": score}, index=[0])
+    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "contact_us_score": score, \
+                           "cu_email_exist": int(exists[0]), "cu_phone_number_exist": int(exists[1])}, index=[0])
 
     return res_df
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: MARKDOWN
-# ### TnC Score
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 def tnc_score(df, hyperlinks):
     """Return score (percentage) of tnc component in a website"""
 
@@ -245,25 +240,22 @@ def tnc_score(df, hyperlinks):
 
         mask = np.isin(['refunds', 'refund', 'refund policy', 'return', 'returns', 'return policy', \
                         'pengembalian', 'pengembalian dana', 'mengembalikan dana', 'dikembalikan', 'kembali',\
-                        'pengembalian uang', 'mengembalikan', 'kembali'], words)
+                        'pengembalian uang', 'mengembalikan'], words)
 
-        score = 100 if np.count_nonzero(mask) > 0 else 0
+        count_refund = np.count_nonzero(mask)
+
+        score = 100 if count_refund > 0 else 0
 
     except:
         paragraf = ""
-        score = 0
+        score = int(0)
+        count_refund = int(0)
 
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "tnc_score": score}, index=[0])
+    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "tnc_score": score, \
+                           "tnc_refund_policy_exist": int(1) if count_refund > 0 else int(0)}, index=[0])
 
     return res_df
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: MARKDOWN
-# ### Join All
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# merchants_df
-
-# merchants_df = pd.read_excel("merchants.xlsx").drop("No", axis=1)
 def orchestrator(url):
 
     df = pd.DataFrame({"Merchant Name": url, "Website": url}, index=[0])
@@ -280,38 +272,3 @@ def orchestrator(url):
     res['total_score'] = 'null'
 
     return res
-    
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "contact_us_exist": [], "about_us_exist": [],\
-#                        "tnc_exist": [], "contact_us_score": [], "tnc_score": []})
-
-# for i in range(len(merchants_df)):
-#     df = merchants_df.reset_index()
-#     df = df[df.index == i]
-#     url = df['Website'].values[0]
-#     print(url)
-#     hyperlinks = get_hyperlinks(url)
-
-#     broken_df = broken_link_score(df, hyperlinks)
-#     important_df = important_links_check(df, hyperlinks)
-#     contact_df = contact_us_score(df, hyperlinks)
-#     tnc_df = tnc_score(df, hyperlinks)
-
-#     dfs = [broken_df, important_df, contact_df, tnc_df]
-#     dfs = [df.set_index("merchant_name") for df in dfs]
-#     res = pd.concat(dfs, axis=1).reset_index()
-
-#     df_res = pd.concat([df_res, res])
-
-# # -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# # Compute recipe outputs from inputs
-# # TODO: Replace this part by your actual code that computes the output, as a Pandas dataframe
-# # NB: DSS also supports other kinds of APIs for reading and writing data. Please see doc.
-
-# features_output_df = df_res # For this sample code, simply copy input to output
-
-
-# # Write recipe outputs
-# features_output = dataiku.Dataset("features_output")
-# features_output.write_with_schema(features_output_df)
