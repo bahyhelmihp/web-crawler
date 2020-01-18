@@ -132,12 +132,17 @@ def broken_link_score(df, hyperlinks):
     if len(hyperlinks) > 10:
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, headers = {'User-Agent': np.random.choice(user_agent_list)}) for x in hyperlinks)
-    rs_res = grequests.map(rs, size = 10)
+    rs_res = grequests.map(rs, size = 2)
     
     broken_links = {}
+    i = 0
     for response in rs_res:
         if str(response) != '<Response [200]>':
-            broken_links[response.request.url] = str(response)
+            try:
+                broken_links[response.request.url] = str(response)
+            except :
+                broken_links[hyperlinks[i]] = 'None'
+        i += 1
 
     status_not_ok = np.count_nonzero(np.array(rs_res, dtype=str) != '<Response [200]>')
     status_length = len(rs_res)
