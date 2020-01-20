@@ -152,7 +152,7 @@ def broken_link_score(df, hyperlinks):
     except:
         score = 100
 
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "broken_link_score": score,\
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": score,\
                            "broken_links": str(broken_links)}, index=[0])
 
     return res_df
@@ -178,7 +178,7 @@ def important_links_check(df, hyperlinks):
     & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
     tnc_count = 1 if np.count_nonzero(np.array(hyperlinks)[tnc_mask]) >= 1 else 0
 
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "link_contact_us_exist": int(contact_count),\
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_contact_us_exist": int(contact_count),\
                           "link_about_us_exist": int(about_count), "link_tnc_exist": int(tnc_count)}, index=[0])
 
     return res_df
@@ -208,7 +208,7 @@ def contact_us_score(df, hyperlinks):
         exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "contact_us_score": score, \
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "contact_us_score": score, \
                            "cu_email_exist": int(exists[0]), "cu_phone_number_exist": int(exists[1])}, index=[0])
 
     return res_df
@@ -265,14 +265,14 @@ def tnc_score(df, hyperlinks):
         score = int(0)
         count_refund = int(0)
 
-    res_df = pd.DataFrame({"merchant_name": df['Merchant Name'].values[0], "tnc_score": score, \
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "tnc_score": score, \
                            "tnc_refund_policy_exist": int(1) if count_refund > 0 else int(0)}, index=[0])
 
     return res_df
 
 def orchestrator(url):
 
-    df = pd.DataFrame({"Merchant Name": url, "Website": url}, index=[0])
+    df = pd.DataFrame({"merchant_name": url, "Website": url}, index=[0])
     hyperlinks = get_hyperlinks(url)
 
     broken_df = broken_link_score(df, hyperlinks)
