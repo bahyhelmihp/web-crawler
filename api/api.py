@@ -1,15 +1,12 @@
 from gevent import monkey
-monkey.patch_all()
-
-import sys, os
-sys.path.append(os.path.abspath(os.path.join('..', 'web-crawler')))
+monkey.patch_all(thread=False, select=False)
 import flask
 from flask import request, jsonify
 from functions.base_functions import orchestrator
 from functions.batch_processor import batch_process
 
 app = flask.Flask(__name__)
-app.config["DEBUG"] = True
+app.config["DEBUG"] = False
 
 @app.route('/', methods=['GET'])
 def home():

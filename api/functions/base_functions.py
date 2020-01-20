@@ -1,9 +1,5 @@
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 from gevent import monkey as curious_george
 curious_george.patch_all(thread=False, select=False)
-
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
-# -*- coding: utf-8 -*-
 from requests_html import HTMLSession
 import pandas as pd
 from bs4 import BeautifulSoup as bs
