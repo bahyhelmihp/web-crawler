@@ -9,3 +9,4 @@ unidecode
 textblob
 nltk
 flask
+selenium
