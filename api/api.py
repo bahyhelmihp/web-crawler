@@ -1,5 +1,5 @@
 from gevent import monkey
-monkey.patch_all(thread=False, select=False)
+monkey.patch_all()
 import flask
 from flask import request, jsonify
 from functions.base_functions import orchestrator

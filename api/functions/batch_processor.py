@@ -1,3 +1,5 @@
+from gevent import monkey
+monkey.patch_all()
 import pandas as pd
 import flask
 from functions.base_functions import *

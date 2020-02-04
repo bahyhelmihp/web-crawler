@@ -1,5 +1,5 @@
-from gevent import monkey as curious_george
-curious_george.patch_all(thread=False, select=False)
+from gevent import monkey
+monkey.patch_all()
 from requests_html import HTMLSession
 import pandas as pd
 from bs4 import BeautifulSoup as bs
