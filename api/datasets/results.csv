@@ -1,3 +1,21 @@
 ,merchant_name,broken_link_score,link_contact_us_exist,cu_email_exist,cu_phone_number_exist,link_about_us_exist,link_tnc_exist,tnc_refund_policy_exist,contact_us_score,tnc_score,label,broken_links
-0,CV. ASIA TRIP INDONESIA,0.0,1.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,APPROVED,{}
-0,Pt. Blooming Lotus Yoga,10.0,1.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,APPROVED,{'https://www.blooming-lotus-yoga.com/bali-retreats/': '<Response [403]>'}
+0,CV. ASIA TRIP INDONESIA,0.0,1.0,0.0,1.0,0.0,1.0,1.0,50.0,100.0,APPROVED,{}
+0,Pt. Blooming Lotus Yoga,10.0,1.0,1.0,1.0,1.0,1.0,1.0,100.0,100.0,APPROVED,{'https://www.blooming-lotus-yoga.com/drops-of-nectar/': '<Response [403]>'}
+0,Yayasan Green Sejahtera,0.0,1.0,1.0,1.0,1.0,1.0,1.0,100.0,100.0,APPROVED,{}
+0,PT Matair Terra Solusi,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,APPROVED,{}
+0,SimplyMii,0.0,1.0,0.0,1.0,0.0,0.0,0.0,50.0,0.0,APPROVED,{}
+0,Nyetak.ID,0.0,0.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,APPROVED,{}
+0,nonandnik,0.0,1.0,1.0,1.0,1.0,1.0,1.0,100.0,100.0,APPROVED,{}
+0,YoYo Mats,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{}
+0,hiendguitar.com,0.0,1.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,APPROVED,{}
+0,Fipper,0.0,1.0,1.0,1.0,1.0,1.0,0.0,100.0,0.0,APPROVED,{}
+0,SisilShop,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,Gamma Media,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,Shinhwa Global Sakura Bear,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,Gitra,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,100.0,REJECTED,{}
+0,Putri mitsubishi,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,Toko Reza 999,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,wiraswasta,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{}
+0,Barokah Lumintu,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,Merah Hitam,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{'': 'None'}
+0,Sellygroup,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{}

@@ -123,7 +123,7 @@ def paragraf_extractor(url):
 def broken_link_score(df, hyperlinks):
     """Return score (percentage) of broken link in a website"""
 
-    avoid = pd.Series(hyperlinks).str.contains("wa.me")
+    avoid = pd.Series(hyperlinks).str.contains("wa.me") | pd.Series(hyperlinks).str.contains("youtube")
     hyperlinks = list(pd.Series(hyperlinks)[~avoid].values)
     if len(hyperlinks) > 10:
         hyperlinks = sample(hyperlinks, 10)
@@ -198,7 +198,7 @@ def contact_us_score(df, hyperlinks):
         exists = [0,0]
 
     if np.count_nonzero(exists) == 0:
-        base_url = df['Website'].values[0]
+        base_url = df['website'].values[0]
         paragraf = paragraf_extractor(url_format_handler(base_url))
         exists[0] = 1 if email_matcher(paragraf, url_format_handler(base_url)) == 1 else 0
         exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
@@ -268,7 +268,7 @@ def tnc_score(df, hyperlinks):
 
 def orchestrator(url):
 
-    df = pd.DataFrame({"merchant_name": url, "Website": url}, index=[0])
+    df = pd.DataFrame({"merchant_name": url, "website": url}, index=[0])
     hyperlinks = get_hyperlinks(url)
 
     broken_df = broken_link_score(df, hyperlinks)
