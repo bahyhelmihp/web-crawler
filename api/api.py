@@ -36,13 +36,23 @@ def api_url_batch():
     else:
         return "Error: No url field provided. Please specify an url."
     
-    if 'line' in request.args:
-        line = int(request.args['line'])
+    if 'start' in request.args:
+        start = int(request.args['start'])
     else:
-        line = 0
+        start = 0
+
+    if 'end' in request.args:
+        end = int(request.args['end'])
+    else:
+        end = 0
+
+    if 'name' in request.args:
+        name = str(request.args['name'])
+    else:
+        name = 'results'
 
     # Create an empty list for our results
-    res = batch_process(url, line)
+    res = batch_process(url, start, end, name)
     return res
 
 if __name__ == "__main__":

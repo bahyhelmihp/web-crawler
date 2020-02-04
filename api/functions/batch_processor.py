@@ -5,12 +5,14 @@ import flask
 from functions.base_functions import *
 import sys, os
 
-def batch_process(url, line):
+def batch_process(url, start, end, name):
+    """Function to batch process crawling function
+    Input: CSV URL, index to read, output file name
+    Output: CSV Results"""
+
     input_df = pd.read_csv(url)
-    if line == 0:
-        row_processed = len(input_df)
-    else:
-        row_processed = line
+    if start == 0 and end == 0:
+        end = len(input_df)
     
     df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "link_contact_us_exist": [], \
             "cu_email_exist": [], "cu_phone_number_exist": [], "link_about_us_exist": [],\
@@ -18,7 +20,7 @@ def batch_process(url, line):
             "tnc_score": [], "label": []})
     
     input_df = input_df.reset_index()
-    for i in range(row_processed):
+    for i in range(start, end):
         df = input_df[input_df.index == i]  
         url = df['website'].values[0]
         print(url)
@@ -36,6 +38,6 @@ def batch_process(url, line):
 
         df_res = pd.concat([df_res, res], sort=False)
 
-    res_url = 'datasets/results.csv'
+    res_url = 'datasets/' + name + '.csv'
     df_res.to_csv(res_url)
     return "File successfully written"
