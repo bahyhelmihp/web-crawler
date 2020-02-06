@@ -20,24 +20,29 @@ def batch_process(url, start, end, name):
             "tnc_score": [], "label": []})
     
     input_df = input_df.reset_index()
-    for i in range(start, end):
-        df = input_df[input_df.index == i]  
-        url = df['website'].values[0]
-        print(url)
-        hyperlinks = get_hyperlinks(url)
+    try:
+        for i in range(start, end):
+            df = input_df[input_df.index == i]  
+            url = str(df['website'].values[0])
+            print(url + " --> " + str(i+1-start))
+            hyperlinks = get_hyperlinks(url)
 
-        broken_df = broken_link_score(df, hyperlinks)
-        important_df = important_links_check(df, hyperlinks)
-        contact_df = contact_us_score(df, hyperlinks)
-        tnc_df = tnc_score(df, hyperlinks)
+            broken_df = broken_link_score(df, hyperlinks)
+            important_df = important_links_check(df, hyperlinks)
+            contact_df = contact_us_score(df, hyperlinks)
+            tnc_df = tnc_score(df, hyperlinks)
 
-        dfs = [broken_df, important_df, contact_df, tnc_df]
-        dfs = [df.set_index("merchant_name") for df in dfs]
-        res = pd.concat(dfs, axis=1, sort=False).reset_index()
-        res['label'] = df['label'].values[0]
+            dfs = [broken_df, important_df, contact_df, tnc_df]
+            dfs = [df.set_index("merchant_name") for df in dfs]
+            res = pd.concat(dfs, axis=1, sort=False).reset_index()
+            res['label'] = df['label'].values[0]
 
-        df_res = pd.concat([df_res, res], sort=False)
+            df_res = pd.concat([df_res, res], sort=False)
 
-    res_url = 'datasets/' + name + '.csv'
-    df_res.to_csv(res_url)
-    return "File successfully written"
+        res_url = 'datasets/' + name + '.csv'
+        df_res.to_csv(res_url)
+        return str(i+1-start) + " line(s) successfully written."
+    except:
+        res_url = 'datasets/' + name + '.csv'
+        df_res.to_csv(res_url)
+        return "Error occured. " + str(i+1-start-1) + " line(s) successfully written."   
