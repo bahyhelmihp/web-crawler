@@ -106,7 +106,7 @@ def telephone_matcher(paragraf):
 
 def paragraf_extractor(url):
     try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)})
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=10)
         soup = bs(page.content, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em")
 
@@ -128,14 +128,16 @@ def broken_link_score(df, hyperlinks):
     pd.Series(hyperlinks).str.contains("cloudflare") | pd.Series(hyperlinks).str.contains("twitter") | \
     pd.Series(hyperlinks).str.contains("github") | pd.Series(hyperlinks).str.contains("instagram") | \
     pd.Series(hyperlinks).str.contains("tokopedia") | pd.Series(hyperlinks).str.contains("bukalapak") | \
-    pd.Series(hyperlinks).str.contains("tel") | pd.Series(hyperlinks).str.contains("gitlab")
+    pd.Series(hyperlinks).str.contains("tel") | pd.Series(hyperlinks).str.contains("gitlab") | \
+    pd.Series(hyperlinks).str.contains("Tel") | pd.Series(hyperlinks).str.contains("jobstreet") | \
+    pd.Series(hyperlinks).str.contains("download")
 
     hyperlinks = list(pd.Series(hyperlinks)[~avoid].values)
     if len(hyperlinks) > 10:
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, \
         headers = {'User-Agent': np.random.choice(user_agent_list)}, \
-        timeout=30) for x in hyperlinks)
+        timeout=10) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 2)
     
     broken_links = {}

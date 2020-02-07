@@ -18,7 +18,7 @@ def batch_process(url, start, end, name):
     df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "link_contact_us_exist": [], \
             "cu_email_exist": [], "cu_phone_number_exist": [], "link_about_us_exist": [],\
             "link_tnc_exist": [], "tnc_refund_policy_exist": [], "contact_us_score": [], \
-            "tnc_score": [], "label": []})
+            "tnc_score": [], "broken_links": [], "website": [], "label": []})
     
     input_df = input_df.reset_index()
     try:
@@ -50,6 +50,7 @@ def batch_process(url, start, end, name):
             dfs = [df.set_index("merchant_name") for df in dfs]
             res = pd.concat(dfs, axis=1, sort=False).reset_index()
             res['label'] = df['label'].values[0]
+            res['website'] = df['website'].values[0]
 
             df_res = pd.concat([df_res, res], sort=False)
             res_url = './datasets/' + name + '.csv'
