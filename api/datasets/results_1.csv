@@ -1,0 +1,2 @@
+,merchant_name,broken_link_score,link_contact_us_exist,cu_email_exist,cu_phone_number_exist,link_about_us_exist,link_tnc_exist,tnc_refund_policy_exist,contact_us_score,tnc_score,label,broken_links
+0,CV.ASIATRIPINDONESIA,10.0,1.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,APPROVED,{'tel:02273518249': 'None'}
