@@ -39,10 +39,10 @@ def batch_process(url, start, end, name):
 
             df_res = pd.concat([df_res, res], sort=False)
 
-        res_url = 'datasets/' + name + '.csv'
+        res_url = './' + name + '.csv'
         df_res.to_csv(res_url)
         return str(i+1-start) + " line(s) successfully written."
     except:
-        res_url = 'datasets/' + name + '.csv'
+        res_url = './' + name + '.csv'
         df_res.to_csv(res_url)
         return "Error occured. " + str(i+1-start-1) + " line(s) successfully written."   
