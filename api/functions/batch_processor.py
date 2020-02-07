@@ -25,8 +25,15 @@ def batch_process(url, start, end, name):
         for i in range(start, end):
             df = input_df[input_df.index == i]  
             url = str(df['website'].values[0])
+            
+            print(url + " --> " + str(i+1-start))
+            logging.info(url + " --> " + str(i+1-start))
+            
             hyperlinks = get_hyperlinks(url)
-
+            ## Recheck Hyperlinks
+            if len(hyperlinks) == 0:
+                hyperlinks = get_hyperlinks(url)
+            print("Hyperlinks gathered.")
             broken_df = broken_link_score(df, hyperlinks)
             ## Recheck Broken Links
             if broken_df['broken_link_score'].values[0] == 100:
@@ -47,8 +54,6 @@ def batch_process(url, start, end, name):
             df_res = pd.concat([df_res, res], sort=False)
             res_url = './datasets/' + name + '.csv'
             df_res.to_csv(res_url)
-            print(url + " --> " + str(i+1-start))
-            logging.info(url + " --> " + str(i+1-start))
 
         return str(i+1-start) + " line(s) successfully written."
     except:
