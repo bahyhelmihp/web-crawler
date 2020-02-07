@@ -21,42 +21,42 @@ def batch_process(url, start, end, name):
             "tnc_score": [], "label": []})
     
     input_df = input_df.reset_index()
-    try:
-        for i in range(start, end):
-            df = input_df[input_df.index == i]  
-            url = str(df['website'].values[0])
-            
-            print(url + " --> " + str(i+1-start))
-            logging.info(url + " --> " + str(i+1-start))
-            
+    # try:
+    for i in range(start, end):
+        df = input_df[input_df.index == i]  
+        url = str(df['website'].values[0])
+        
+        print(url + " --> " + str(i+1-start))
+        logging.info(url + " --> " + str(i+1-start))
+        
+        hyperlinks = get_hyperlinks(url)
+        ## Recheck Hyperlinks
+        if len(hyperlinks) == 0:
             hyperlinks = get_hyperlinks(url)
-            ## Recheck Hyperlinks
-            if len(hyperlinks) == 0:
-                hyperlinks = get_hyperlinks(url)
-            print("Hyperlinks gathered.")
+        print("Hyperlinks gathered.")
+        broken_df = broken_link_score(df, hyperlinks)
+        ## Recheck Broken Links
+        if broken_df['broken_link_score'].values[0] == 100:
             broken_df = broken_link_score(df, hyperlinks)
-            ## Recheck Broken Links
-            if broken_df['broken_link_score'].values[0] == 100:
-                broken_df = broken_link_score(df, hyperlinks)
-            print("Broken links checked.")
-            important_df = important_links_check(df, hyperlinks)
-            print("Important links checked.")
-            contact_df = contact_us_score(df, hyperlinks)
-            print("Contact us checked.")
-            tnc_df = tnc_score(df, hyperlinks)
-            print("TnC checked.")
+        print("Broken links checked.")
+        important_df = important_links_check(df, hyperlinks)
+        print("Important links checked.")
+        contact_df = contact_us_score(df, hyperlinks)
+        print("Contact us checked.")
+        tnc_df = tnc_score(df, hyperlinks)
+        print("TnC checked.")
 
-            dfs = [broken_df, important_df, contact_df, tnc_df]
-            dfs = [df.set_index("merchant_name") for df in dfs]
-            res = pd.concat(dfs, axis=1, sort=False).reset_index()
-            res['label'] = df['label'].values[0]
+        dfs = [broken_df, important_df, contact_df, tnc_df]
+        dfs = [df.set_index("merchant_name") for df in dfs]
+        res = pd.concat(dfs, axis=1, sort=False).reset_index()
+        res['label'] = df['label'].values[0]
 
-            df_res = pd.concat([df_res, res], sort=False)
-            res_url = './datasets/' + name + '.csv'
-            df_res.to_csv(res_url)
-
-        return str(i+1-start) + " line(s) successfully written."
-    except:
+        df_res = pd.concat([df_res, res], sort=False)
         res_url = './datasets/' + name + '.csv'
         df_res.to_csv(res_url)
-        return "Error occured. " + str(i+1-start-1) + " line(s) successfully written."   
+
+    return str(i+1-start) + " line(s) successfully written."
+    # except:
+    #     res_url = './datasets/' + name + '.csv'
+    #     df_res.to_csv(res_url)
+    #     return "Error occured. " + str(i+1-start-1) + " line(s) successfully written."   

@@ -123,11 +123,17 @@ def paragraf_extractor(url):
 def broken_link_score(df, hyperlinks):
     """Return score (percentage) of broken link in a website"""
 
-    avoid = pd.Series(hyperlinks).str.contains("wa.me") | pd.Series(hyperlinks).str.contains("youtube") | pd.Series(hyperlinks).str.contains("linkedin") 
+    avoid = pd.Series(hyperlinks).str.contains("wa.me") | pd.Series(hyperlinks).str.contains("youtube") | \
+    pd.Series(hyperlinks).str.contains("linkedin") | pd.Series(hyperlinks).str.contains("facebook") | \
+    pd.Series(hyperlinks).str.contains("cloudflare") | pd.Series(hyperlinks).str.contains("twitter") | \
+    pd.Series(hyperlinks).str.contains("github") | pd.Series(hyperlinks).str.contains("instagram") | \
+    pd.Series(hyperlinks).str.contains("tokopedia") | pd.Series(hyperlinks).str.contains("bukalapak")
     hyperlinks = list(pd.Series(hyperlinks)[~avoid].values)
     if len(hyperlinks) > 10:
         hyperlinks = sample(hyperlinks, 10)
-    rs = (grequests.get(x, headers = {'User-Agent': np.random.choice(user_agent_list)}) for x in hyperlinks)
+    rs = (grequests.get(x, \
+        headers = {'User-Agent': np.random.choice(user_agent_list)}, \
+        timeout=25) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 2)
     
     broken_links = {}
@@ -202,6 +208,10 @@ def contact_us_score(df, hyperlinks):
         paragraf = paragraf_extractor(url_format_handler(base_url))
         exists[0] = 1 if email_matcher(paragraf, url_format_handler(base_url)) == 1 else 0
         exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
+
+    if exists[1] == 0 and pd.Series(hyperlinks).str.contains("tel").any():
+        tel = pd.Series(hyperlinks)[pd.Series(hyperlinks).str.contains("tel")].values[0]
+        exists[1] = 1 if telephone_matcher(tel) == 1 else 0
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "contact_us_score": score, \
