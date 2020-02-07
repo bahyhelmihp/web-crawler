@@ -1,0 +1,51 @@
+,merchant_name,broken_link_score,link_contact_us_exist,cu_email_exist,cu_phone_number_exist,link_about_us_exist,link_tnc_exist,tnc_refund_policy_exist,contact_us_score,tnc_score,label,broken_links
+0,heywikwiks,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{}
+0,Kiddosz Toys,0.0,1.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,REJECTED,{}
+0,Ratapay,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,100.0,REJECTED,{}
+0,socks.international,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,REJECTED,{}
+0,offgamershop,20.0,1.0,1.0,1.0,1.0,0.0,0.0,100.0,0.0,REJECTED,"{'https://www.offgamershop.com/pages/about-us': '<Response [404]>', 'https://www.offgamershop.com/collections/fashion': '<Response [404]>'}"
+0,JSC Fashions,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,100.0,REJECTED,{}
+0,KRISHA,10.0,1.0,0.0,1.0,0.0,0.0,0.0,50.0,0.0,REJECTED,{'https://krish.us16.list-manage.com/subscribe?u=ffb3b8dba11810859a71784c4&id=e125a5863b': '<Response [404]>'}
+0,Bigfiveshop.com,0.0,1.0,1.0,1.0,0.0,1.0,1.0,100.0,100.0,REJECTED,{}
+0, Yuliana GoHerbalife                        ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Digital Service Testing Merchant           ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, ab med store                               ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, CV. Vineplus Solusindo                     ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, LUBRICANTS                                 ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, DAUKY FASHION                              ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, BDS Denim                                  ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, AOGIN                                      ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Project X                                  ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, PT DIGITAL MEDIKA INFORMATIK               ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Pt. Blooming Lotus Yoga                    ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Soulcielite                                ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Bayyinah Quran Indonesia                   ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Gold Pigeon Sandals Indonesia              ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Robert Brown                               ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Aromanis                                   ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Citra Sukses Abadi                         ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, CV. Mantap                                 ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Parsley Bakery                             ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Toko UD Pulung                             ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Central Jaya Tehnik                        ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Gardena Departement Store                  ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, JVM Indonesia                              ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Yayasan Green Sejahtera                    ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Tanah Air Foundation                       ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Babo Babo Trading                          ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, BenihBaik.com                              ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Yayasan Dewan Inggris Indonesia            ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, CPD Social Commerce                        ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Miss Katy                                  ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, CV. ASIA TRIP INDONESIA                    ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Manikid                                    ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Jare's                                     ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, globomart                                  ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Scars                                      ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Hatapoda.ID                                ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Honey Softlens                             ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, Ngastadamel                                ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, MarkPlus Institute                         ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, PT. Anugerah Mas                           ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, unilead-asia.com                           ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
+0, prueba comercial                           ,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,APPROVED,{'': 'None'}
