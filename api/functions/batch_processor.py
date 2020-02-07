@@ -28,9 +28,16 @@ def batch_process(url, start, end, name):
             hyperlinks = get_hyperlinks(url)
 
             broken_df = broken_link_score(df, hyperlinks)
+            ## Recheck Broken Links
+            if broken_df['broken_link_score'].values[0] == 100:
+                broken_df = broken_link_score(df, hyperlinks)
+            print("Broken links checked.")
             important_df = important_links_check(df, hyperlinks)
+            print("Important links checked.")
             contact_df = contact_us_score(df, hyperlinks)
+            print("Contact us checked.")
             tnc_df = tnc_score(df, hyperlinks)
+            print("TnC checked.")
 
             dfs = [broken_df, important_df, contact_df, tnc_df]
             dfs = [df.set_index("merchant_name") for df in dfs]
