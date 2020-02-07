@@ -8,6 +8,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+api/datasets/*
 build/
 develop-eggs/
 dist/
@@ -55,3 +56,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# exception to the rule
+!api/datasets/Analyse Result.ipynb
+!api/datasets/merchants_cleaned.csv  
