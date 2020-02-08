@@ -59,4 +59,6 @@ target/
 
 # exception to the rule
 !api/datasets/Analyse Result.ipynb
-!api/datasets/merchants_cleaned.csv  
+!api/datasets/merchants_cleaned.csv
+!api/datasets/results_all.csv
+!api/datasets/results_all_2.csv  
