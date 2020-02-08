@@ -130,7 +130,8 @@ def broken_link_score(df, hyperlinks):
     pd.Series(hyperlinks).str.contains("tokopedia") | pd.Series(hyperlinks).str.contains("bukalapak") | \
     pd.Series(hyperlinks).str.contains("tel") | pd.Series(hyperlinks).str.contains("gitlab") | \
     pd.Series(hyperlinks).str.contains("Tel") | pd.Series(hyperlinks).str.contains("jobstreet") | \
-    pd.Series(hyperlinks).str.contains("download")
+    pd.Series(hyperlinks).str.contains("download") | pd.Series(hyperlinks).str.contains("google") | \
+    pd.Series(hyperlinks).str.contains("javaScript")
 
     hyperlinks = list(pd.Series(hyperlinks)[~avoid].values)
     if len(hyperlinks) > 10:
