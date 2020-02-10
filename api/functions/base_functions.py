@@ -128,7 +128,7 @@ def broken_link_score(df, hyperlinks):
     pd.Series(hyperlinks).str.contains("cloudflare") | pd.Series(hyperlinks).str.contains("twitter") | \
     pd.Series(hyperlinks).str.contains("github") | pd.Series(hyperlinks).str.contains("instagram") | \
     pd.Series(hyperlinks).str.contains("tokopedia") | pd.Series(hyperlinks).str.contains("bukalapak") | \
-    pd.Series(hyperlinks).str.contains("tel") | pd.Series(hyperlinks).str.contains("gitlab") | \
+    pd.Series(hyperlinks).str.match("tel") | pd.Series(hyperlinks).str.contains("gitlab") | \
     pd.Series(hyperlinks).str.contains("Tel") | pd.Series(hyperlinks).str.contains("jobstreet") | \
     pd.Series(hyperlinks).str.contains("download") | pd.Series(hyperlinks).str.contains("google") | \
     pd.Series(hyperlinks).str.contains("javaScript")
