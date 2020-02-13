@@ -87,9 +87,9 @@ def email_matcher(paragraf, url):
             email_code = re.search('data-cfemail="(.+?)"', str(page.content)).group(1)
             email = decode_email(email_code)
             paragraf = paragraf + str(email)
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf) or re.search(r'[\w\.-]+@', paragraf)
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
     except:
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf) or re.search(r'[\w\.-]+@', paragraf)
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
 
     if email_match is not None:
         return 1
@@ -176,7 +176,7 @@ def important_links_check(df, hyperlinks):
     contact_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_contact)) \
     & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
     contact_count = 1 if np.count_nonzero(np.array(hyperlinks)[contact_mask]) >= 1 else 0
-
+    
     about_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_about)) \
     & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
     about_count = 1 if np.count_nonzero(np.array(hyperlinks)[about_mask]) >= 1 else 0
@@ -203,6 +203,11 @@ def contact_us_score(df, hyperlinks):
     try:
         contact_link = pd.Series(hyperlinks)[contact_mask].values[0]
         paragraf = paragraf_extractor(contact_link)
+        print(telephone_matcher(paragraf))
+        print(email_matcher(paragraf, contact_link))
+        print(paragraf)
+        print(contact_link)
+
         exists[0] = 1 if email_matcher(paragraf, contact_link) == 1 else 0
         exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
     except:
