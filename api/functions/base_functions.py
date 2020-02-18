@@ -87,7 +87,7 @@ def email_matcher(paragraf):
         return 0
 
 def telephone_matcher(paragraf):
-    telephone_match = re.search(r'(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})',\
+    telephone_match = re.search(r'([\(62)\(08)\(02)]\d{7,12}|\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})',\
                                    paragraf)
     if telephone_match is not None:
         return 1
@@ -306,7 +306,12 @@ def tnc_score(df, hyperlinks):
         paragraf = paragraf_extractor(url_format_handler(base_url))
         mask = np.isin(keyword_refund, paragraf)
         count_refund = np.count_nonzero(mask)
-        score = 100 if count_refund > 0 else score
+        
+        ## Change scoring
+        if count_refund > 0 and score == 50:
+            score = 100
+        if count_refund > 0 and score == 0:
+            score = 50
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "tnc_score": score, \
                            "tnc_refund_policy_exist": int(1) if count_refund > 0 else int(0)}, index=[0])
