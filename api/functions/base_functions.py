@@ -78,18 +78,8 @@ def decode_email(e):
 
     return de
 
-def email_matcher(paragraf, url):
-
-    ## If using CloudFare, email should be decrypted
-    try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)})
-        if re.search('data-cfemail', str(page.content)) is not None:
-            email_code = re.search('data-cfemail="(.+?)"', str(page.content)).group(1)
-            email = decode_email(email_code)
-            paragraf = paragraf + str(email)
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
-    except:
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+', paragraf)
+def email_matcher(paragraf):
+    email_match = re.search(r'[\w\.-]+(@|\[at])[\w\.-]+', paragraf)
 
     if email_match is not None:
         return 1
@@ -106,15 +96,39 @@ def telephone_matcher(paragraf):
 
 def paragraf_extractor(url):
     try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=10)
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
         soup = bs(page.content, 'html.parser')
-        all_ps = soup.find_all("p") + soup.find_all("em")
+        all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
+        + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
+        + soup.find_all("h6") + soup.find_all("a") + soup.find_all("strong")
+
+        ## CloudFare Email Getter
+        if re.search('data-cfemail', str(soup)) is not None:
+            email_code = re.search('data-cfemail="(.+?)"', str(soup)).group(1)
+            email = str(decode_email(email_code))
+        else:
+            email = ""
+
+        ## Meta Getter
+        meta_property = soup.find("meta", property="og:description")
+        meta_name = soup.find("meta", {"name":"description"})
+        if meta_property is not None:
+            meta_property = soup.find("meta", property="og:description")["content"]
+        else:
+            meta_property = ""
+        if meta_name is not None:
+            meta_name = soup.find("meta", {"name":"description"})["content"]
+        else:
+            meta_name = ""
 
         list_p = []
         for p in all_ps:
-            list_p.append(unidecode.unidecode(p.getText()) + "\n")
+            if not re.search('<div', str(p)):
+                list_p.append(unidecode.unidecode(p.getText()) + "\n")
 
         paragraf = "".join(list_p)
+        paragraf += meta_property + meta_name + email
+        paragraf = paragraf.lower()
     except:
         paragraf = ""
 
@@ -138,7 +152,7 @@ def broken_link_score(df, hyperlinks):
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, \
         headers = {'User-Agent': np.random.choice(user_agent_list)}, \
-        timeout=10) for x in hyperlinks)
+        timeout=15) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 2)
     
     broken_links = {}
@@ -167,22 +181,24 @@ def broken_link_score(df, hyperlinks):
 def important_links_check(df, hyperlinks):
     """Return boolean of important links (contact, about, tnc) existance"""
 
-    keyword_contact = ["contact", "kontak", "call"]
+    keyword_contact = ["contact", "kontak", "call", "hubungi", "cs"]
     keyword_about = ["about", "tentang"]
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
-                   "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat"]
+                   "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
+                   "agreement", "exchange", "return", "retur", "tukar", "faq", "toc", "tos", "aturan", \
+                   "pengembalian", "penukaran", "perjanjian", "service"]
     avoid = ["conditioner", "termurah", "termahal"]
 
-    contact_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_contact)) \
-    & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
+    contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
+    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
     contact_count = 1 if np.count_nonzero(np.array(hyperlinks)[contact_mask]) >= 1 else 0
     
-    about_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_about)) \
-    & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
+    about_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_about)) \
+    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
     about_count = 1 if np.count_nonzero(np.array(hyperlinks)[about_mask]) >= 1 else 0
 
-    tnc_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_tnc)) \
-    & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
+    tnc_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_tnc)) \
+    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
     tnc_count = 1 if np.count_nonzero(np.array(hyperlinks)[tnc_mask]) >= 1 else 0
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_contact_us_exist": int(contact_count),\
@@ -193,35 +209,44 @@ def important_links_check(df, hyperlinks):
 def contact_us_score(df, hyperlinks):
     """Return score (percentage) of contact us component in a website"""
 
-    keyword_contact = ["contact", "kontak", "call"]
+    keyword_contact = ["contact", "kontak", "call", "hubungi", "cs"]
     avoid = ["conditioner", "termurah", "termahal"]
 
     contact_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_contact)) \
     & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
 
-    exists = [0,0]
+    exists = [0,0,0]
     try:
-        contact_link = pd.Series(hyperlinks)[contact_mask].values[0]
-        paragraf = paragraf_extractor(contact_link)
-        print(telephone_matcher(paragraf))
-        print(email_matcher(paragraf, contact_link))
-        print(paragraf)
-        print(contact_link)
+        # Check on all contact links
+        contact_links = pd.Series(hyperlinks)[contact_mask].values
+        for link in contact_links:
+            paragraf = paragraf_extractor(link)
 
-        exists[0] = 1 if email_matcher(paragraf, contact_link) == 1 else 0
-        exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
+            exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
+            exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
+            exists[2] = 1
     except:
-        exists = [0,0]
+        exists = [0,0,0]
 
+    ## Check Email & Phone on HomePage
     if np.count_nonzero(exists) == 0:
         base_url = str(df['website'].values[0])
         paragraf = paragraf_extractor(url_format_handler(base_url))
-        exists[0] = 1 if email_matcher(paragraf, url_format_handler(base_url)) == 1 else 0
-        exists[1] = 1 if telephone_matcher(paragraf) == 1 else 0
+        exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
+        exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
 
+    ## Check for Phone in Hyperlink
     if exists[1] == 0 and pd.Series(hyperlinks).str.contains("tel").any():
         tel = pd.Series(hyperlinks)[pd.Series(hyperlinks).str.contains("tel")].values[0]
         exists[1] = 1 if telephone_matcher(tel) == 1 else 0
+
+    if exists[1] == 0 and pd.Series(hyperlinks).str.contains("api.whatsapp").any():
+        wa = pd.Series(hyperlinks)[pd.Series(hyperlinks).str.contains("api.whatsapp")].values[0]
+        exists[1] = 1 if telephone_matcher(wa) == 1 else 0
+
+    if exists[0] == 0 and pd.Series(hyperlinks).str.contains("mailto").any():
+        mailto = pd.Series(hyperlinks)[pd.Series(hyperlinks).str.contains("mailto")].values[0]
+        exists[1] = 1 if email_matcher(mailto) == 1 else 0
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "contact_us_score": score, \
@@ -232,54 +257,56 @@ def contact_us_score(df, hyperlinks):
 def tnc_score(df, hyperlinks):
     """Return score (percentage) of tnc component in a website"""
 
-    keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", "tnc", "refund", "kebijakan"]
+    keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
+                   "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
+                   "agreement", "exchange", "return", "retur", "tukar", "faq", "toc", "tos", "aturan", \
+                   "pengembalian", "penukaran", "perjanjian", "service"]
     avoid = ["conditioner", "termurah", "termahal"]
+    keyword_refund = ['refunds', 'refund', 'refund policy', 'return', 'returns', 'return policy', \
+                            'pengembalian', 'pengembalian dana', 'mengembalikan dana', 'dikembalikan', 'kembali',\
+                            'pengembalian uang', 'mengembalikan', 'exchange', 'retur', 'tukar', 'penukaran']
 
     tnc_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_tnc)) \
     & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
 
     try:
-        tnc_link = pd.Series(hyperlinks)[tnc_mask].values[0]
+        ## Check on all tnc links
+        tnc_links = pd.Series(hyperlinks)[tnc_mask].values
+        for link in tnc_links:
+            paragraf = paragraf_extractor(link)
+            try:
+                lang = 'indonesian' if tb(paragraf).detect_language() == 'id' else 'english'
+                tokenizer = RegexpTokenizer(r'\w+')
+                words = tokenizer.tokenize(paragraf)
+                stop_words = nltk.corpus.stopwords.words(lang)
 
-        page = requests.get(tnc_link, headers = {'User-Agent': np.random.choice(user_agent_list)})
-        soup = bs(page.content, 'html.parser')
-        all_ps = soup.find_all("p") + soup.find_all("h3") + soup.find_all("h2")\
-        + soup.find_all("h1") + soup.find_all("li")
+                cleaned_words = []
+                for word in words:
+                    if word not in stop_words:
+                        cleaned_words.append(word)
+            except:
+                words = ""
 
-        list_p = []
-        for p in all_ps:
-            list_p.append(unidecode.unidecode(p.getText()).lower() + "\n")
+            mask = np.isin(keyword_refund, words)
 
-        paragraf = "".join(list_p)
-        meta = soup.find("meta", property="og:description")
-        if meta is not None:
-            meta = soup.find("meta", property="og:description")["content"]
-        else:
-            meta = ""
-        paragraf += meta
+            count_refund = np.count_nonzero(mask)
+            if count_refund > 0:           
+                break
 
-        lang = 'indonesian' if tb(paragraf).detect_language() == 'id' else 'english'
-        tokenizer = RegexpTokenizer(r'\w+')
-        words = tokenizer.tokenize(paragraf)
-        stop_words = nltk.corpus.stopwords.words(lang)
-
-        cleaned_words = []
-        for word in words:
-            if word not in stop_words:
-                cleaned_words.append(word)
-
-        mask = np.isin(['refunds', 'refund', 'refund policy', 'return', 'returns', 'return policy', \
-                        'pengembalian', 'pengembalian dana', 'mengembalikan dana', 'dikembalikan', 'kembali',\
-                        'pengembalian uang', 'mengembalikan'], words)
-
-        count_refund = np.count_nonzero(mask)
-
-        score = 100 if count_refund > 0 else 0
+        score = 50 if len(tnc_links) > 0 else 0
+        score = 100 if count_refund > 0 else score
 
     except:
-        paragraf = ""
         score = int(0)
         count_refund = int(0)
+
+    ## Check refund policy on HomePage
+    if score == 0 | score == 50:
+        base_url = str(df['website'].values[0])
+        paragraf = paragraf_extractor(url_format_handler(base_url))
+        mask = np.isin(keyword_refund, paragraf)
+        count_refund = np.count_nonzero(mask)
+        score = 100 if count_refund > 0 else score
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "tnc_score": score, \
                            "tnc_refund_policy_exist": int(1) if count_refund > 0 else int(0)}, index=[0])
