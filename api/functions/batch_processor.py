@@ -5,12 +5,15 @@ import flask
 from functions.base_functions import *
 import sys, os
 import logging
+import time
+import datetime
 
 def batch_process(url, start, end, name):
     """Function to batch process crawling function
     Input: CSV URL, index to read, output file name
     Output: CSV Results"""
 
+    batch_start_time = datetime.datetime.now()
     input_df = pd.read_csv(url)
     if start == 0 and end == 0:
         end = len(input_df)
@@ -23,6 +26,7 @@ def batch_process(url, start, end, name):
     input_df = input_df.reset_index()
     try:
         for i in range(start, end):
+            start_time = time.time()
             df = input_df[input_df.index == i]  
             url = str(df['website'].values[0])
             
@@ -33,18 +37,13 @@ def batch_process(url, start, end, name):
             ## Recheck Hyperlinks
             if len(hyperlinks) == 0:
                 hyperlinks = get_hyperlinks(url)
-            print("Hyperlinks gathered.")
             broken_df = broken_link_score(df, hyperlinks)
             ## Recheck Broken Links
             if broken_df['broken_link_score'].values[0] == 100:
                 broken_df = broken_link_score(df, hyperlinks)
-            print("Broken links checked.")
             important_df = important_links_check(df, hyperlinks)
-            print("Important links checked.")
             contact_df = contact_us_score(df, hyperlinks)
-            print("Contact us checked.")
             tnc_df = tnc_score(df, hyperlinks)
-            print("TnC checked.")
 
             dfs = [broken_df, important_df, contact_df, tnc_df]
             dfs = [df.set_index("merchant_name") for df in dfs]
@@ -55,9 +54,14 @@ def batch_process(url, start, end, name):
             df_res = pd.concat([df_res, res], sort=False)
             res_url = './datasets/' + name + '.csv'
             df_res.to_csv(res_url)
+            print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
 
+        print("--- Start Batch: %s ---" % batch_start_time.strftime("%Y-%m-%d %H:%M:%S"))
+        print("--- End Batch: %s ---" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         return str(i+1-start) + " line(s) successfully written."
     except:
         res_url = './datasets/' + name + '.csv'
         df_res.to_csv(res_url)
+        print("--- Start Batch: %s ---" % batch_start_time.strftime("%Y-%m-%d %H:%M:%S"))
+        print("--- End Batch: %s ---" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         return "Error occured. " + str(i+1-start-1) + " line(s) successfully written."   
