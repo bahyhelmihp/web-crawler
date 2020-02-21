@@ -77,6 +77,7 @@ def get_hyperlinks(url):
 def get_hyperlinks_dynamic(url):
     try:
         print("--- Gathering hyperlinks dynamically")
+        driver.set_page_load_timeout(10)
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
         links = soup.find_all("a")
@@ -184,6 +185,7 @@ def paragraf_extractor(url):
 def paragraf_extractor_dynamic(url):
     try:
         print("--- Extracting paragraphs dynamically")
+        driver.set_page_load_timeout(10)
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
@@ -459,7 +461,7 @@ def tnc_score(df, hyperlinks):
 def orchestrator(url):
 
     start_time = time.time()
-    print(" --- " + url + " --- ")
+    print("--- " + url + " ---")
     df = pd.DataFrame({"merchant_name": url, "website": url}, index=[0])
     hyperlinks = get_hyperlinks(url)
 
