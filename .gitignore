@@ -58,8 +58,6 @@ docs/_build/
 target/
 
 # exception to the rule
-!api/datasets/Analyse Result.ipynb
+!api/datasets/Analysis Result.ipynb
 !api/datasets/Modelling.ipynb
 !api/datasets/merchants_cleaned.csv
-!api/datasets/results_all.csv
-!api/datasets/results_all_2.csv  

@@ -279,12 +279,12 @@ def broken_link_score(df, hyperlinks):
 def important_links_check(df, hyperlinks):
     """Return boolean of important links (contact, about, tnc) existance"""
 
-    keyword_contact = ["contact", "kontak", "call", "hubungi", "cs"]
+    keyword_contact = ["contact", "kontak", "call", "hubungi"]
     keyword_about = ["about", "tentang"]
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
                    "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
-                   "agreement", "exchange", "return", "retur", "tukar", "faq", "toc", "tos", "aturan", \
-                   "pengembalian", "penukaran", "perjanjian", "service", "tc"]
+                   "agreement", "exchange", "return", "retur", "tukar", "faq", "aturan", \
+                   "pengembalian", "penukaran", "perjanjian"]
     avoid = ["conditioner", "termurah", "termahal"]
 
     contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
@@ -330,7 +330,7 @@ def important_links_check(df, hyperlinks):
 def contact_us_score(df, hyperlinks):
     """Return score (percentage) of contact us component in a website"""
 
-    keyword_contact = ["contact", "kontak", "call", "hubungi", "cs"]
+    keyword_contact = ["contact", "kontak", "call", "hubungi"]
     avoid = ["conditioner", "termurah", "termahal"]
 
     contact_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_contact)) \
@@ -385,13 +385,16 @@ def contact_us_score(df, hyperlinks):
            for a in links:
                 ## Contact Link Filtering
                 if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
-                    link = base_url + "/" + a['href']
-                    exists[2] = 1
+                    try:
+                        link = base_url + "/" + a['href']
+                        exists[2] = 1
 
-                    ## Search for cu features
-                    paragraf = paragraf_extractor_dynamic(url_format_handler(link))
-                    exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
-                    exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
+                        ## Search for cu features
+                        paragraf = paragraf_extractor_dynamic(url_format_handler(link))
+                        exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
+                        exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
+                    except:
+                        continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
 
@@ -407,8 +410,8 @@ def tnc_score(df, hyperlinks):
 
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
                    "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
-                   "agreement", "exchange", "return", "retur", "tukar", "faq", "toc", "tos", "aturan", \
-                   "pengembalian", "penukaran", "perjanjian", "service"]
+                   "agreement", "exchange", "return", "retur", "tukar", "faq", "aturan", \
+                   "pengembalian", "penukaran", "perjanjian"]
     avoid = ["conditioner", "termurah", "termahal"]
 
     tnc_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_tnc)) \
@@ -442,12 +445,15 @@ def tnc_score(df, hyperlinks):
            for a in links:
                 ## TnC Link Filtering
                 if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)).any():
-                    link = base_url + "/" + a['href']
-                    exists[1] = 1
+                    try:
+                        link = base_url + "/" + a['href']
+                        exists[1] = 1
 
-                    ## Search for refund_policy features
-                    paragraf = paragraf_extractor_dynamic(url_format_handler(link))
-                    exists[0] = refund_policy_matcher(paragraf)
+                        ## Search for refund_policy features
+                        paragraf = paragraf_extractor_dynamic(url_format_handler(link))
+                        exists[0] = refund_policy_matcher(paragraf)
+                    except:
+                        continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
 
