@@ -18,7 +18,7 @@ from selenium import webdriver
 import time
 nltk.download("stopwords")
 
-driver = webdriver.PhantomJS()
+driver = webdriver.Chrome()
 user_agent_list = [
 
     #Chrome
@@ -76,14 +76,12 @@ def get_hyperlinks(url):
 
 def get_hyperlinks_dynamic(url):
     try:
-        driver.implicitly_wait(15)
+        print("--- Gathering hyperlinks dynamically")
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
         links = soup.find_all("a")
     except:
         links = []
-
-    print("Hyperlinks dynamic gathered.")
 
     return links
 
@@ -185,7 +183,7 @@ def paragraf_extractor(url):
 
 def paragraf_extractor_dynamic(url):
     try:
-        driver.implicitly_wait(15)
+        print("--- Extracting paragraphs dynamically")
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
@@ -279,7 +277,6 @@ def broken_link_score(df, hyperlinks):
 def important_links_check(df, hyperlinks):
     """Return boolean of important links (contact, about, tnc) existance"""
 
-    print("Start important links check")
     keyword_contact = ["contact", "kontak", "call", "hubungi", "cs"]
     keyword_about = ["about", "tentang"]
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
@@ -307,10 +304,8 @@ def important_links_check(df, hyperlinks):
         if np.sum(exists) < 3:
            base_url = str(df['website'].values[0])
            links = get_hyperlinks_dynamic(url_format_handler(base_url))
-           print(len(links))
            if len(links) > 0:
                for a in links:
-                    print(a)
                     ## Contact
                     if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
                         contact_count = 1
@@ -464,6 +459,7 @@ def tnc_score(df, hyperlinks):
 def orchestrator(url):
 
     start_time = time.time()
+    print(" --- " + url + " --- ")
     df = pd.DataFrame({"merchant_name": url, "website": url}, index=[0])
     hyperlinks = get_hyperlinks(url)
 
