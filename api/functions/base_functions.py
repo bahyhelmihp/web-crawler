@@ -114,7 +114,7 @@ def telephone_matcher(paragraf):
 def refund_policy_matcher(paragraf):
     keyword_refund = ['refunds', 'refund', 'refund policy', 'return', 'returns', 'return policy', \
                             'pengembalian', 'pengembalian dana', 'mengembalikan dana', 'dikembalikan', 'kembali',\
-                            'pengembalian uang', 'mengembalikan', 'exchange', 'retur', 'tukar', 'penukaran']
+                            'pengembalian uang', 'mengembalikan', 'retur', 'tukar', 'penukaran']
     try:
         lang = 'indonesian' if tb(paragraf).detect_language() == 'id' else 'english'
         tokenizer = RegexpTokenizer(r'\w+')
@@ -285,7 +285,7 @@ def important_links_check(df, hyperlinks):
                    "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
                    "agreement", "exchange", "return", "retur", "tukar", "faq", "aturan", \
                    "pengembalian", "penukaran", "perjanjian"]
-    avoid = ["conditioner", "termurah", "termahal"]
+    avoid = ["conditioner", "termurah", "termahal", "expired", "expire", "renewal"]
 
     contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
     & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
@@ -315,7 +315,8 @@ def important_links_check(df, hyperlinks):
                     if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_about)).any():
                         about_count = 1
                     ## TnC
-                    if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)).any():
+                    if (pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)) \
+                    & ~pd.Series(str(a)).str.lower().str.contains('|'.join(avoid))).any():
                         tnc_count = 1
     except:
         pass
@@ -333,8 +334,8 @@ def contact_us_score(df, hyperlinks):
     keyword_contact = ["contact", "kontak", "call", "hubungi"]
     avoid = ["conditioner", "termurah", "termahal"]
 
-    contact_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_contact)) \
-    & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
+    contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
+    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
 
     exists = [0,0,0]
         
@@ -412,10 +413,10 @@ def tnc_score(df, hyperlinks):
                    "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
                    "agreement", "exchange", "return", "retur", "tukar", "faq", "aturan", \
                    "pengembalian", "penukaran", "perjanjian"]
-    avoid = ["conditioner", "termurah", "termahal"]
+    avoid = ["conditioner", "termurah", "termahal", "expired", "expire", "renewal"]
 
-    tnc_mask = pd.Series(hyperlinks).str.contains('|'.join(keyword_tnc)) \
-    & ~pd.Series(hyperlinks).str.contains('|'.join(avoid))
+    tnc_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_tnc)) \
+    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
 
     try:
         tnc_links = pd.Series(hyperlinks)[tnc_mask].values
@@ -444,7 +445,8 @@ def tnc_score(df, hyperlinks):
        if len(links) > 0:
            for a in links:
                 ## TnC Link Filtering
-                if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)).any():
+                if (pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)) \
+                    & ~pd.Series(str(a)).str.lower().str.contains('|'.join(avoid))).any():
                     try:
                         link = base_url + "/" + a['href']
                         exists[1] = 1
