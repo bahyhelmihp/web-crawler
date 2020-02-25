@@ -15,10 +15,17 @@ import nltk
 from random import sample
 from flask import request, jsonify
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import time
 nltk.download("stopwords")
 
-driver = webdriver.Chrome()
+options = Options()
+options.add_argument("--headless")
+options.add_argument("--no-sandbox")
+options.add_argument("start-maximized")
+options.add_argument("disable-infobars")
+options.add_argument("--disable-extensions")
+driver = webdriver.Chrome(chrome_options=options)
 user_agent_list = [
 
     #Chrome
