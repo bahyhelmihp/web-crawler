@@ -16,7 +16,7 @@ from random import sample
 from flask import request, jsonify
 from selenium import webdriver
 import time
-# nltk.download("stopwords")
+nltk.download("stopwords")
 
 driver = webdriver.Chrome()
 user_agent_list = [
