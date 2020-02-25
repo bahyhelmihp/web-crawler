@@ -16,7 +16,7 @@ from random import sample
 from flask import request, jsonify
 from selenium import webdriver
 import time
-nltk.download("stopwords")
+# nltk.download("stopwords")
 
 driver = webdriver.Chrome()
 user_agent_list = [
@@ -60,24 +60,42 @@ def url_format_handler(url):
 def get_hyperlinks(url):
     """Return all absolute hyperlinks within the home url"""
 
-    url = url_format_handler(url)
+    print("Gathering hyperlinks...")
+    base_url = url_format_handler(url)
     session = HTMLSession()
     try:
-        r = session.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
+        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
         res = list(r.html.absolute_links)
-        if len(res) == 0:
+        
+        ## If r-html anchor failed, concate manually
+        res_final = [""]
+        for url in res:
+            if not str(url).startswith("http"):  
+                res_final.append(str(base_url + url))
+            else:
+                res_final.append(str(url))
+
+        if len(res) == 0 or len(res_final) == 0:
             res = [""]
+        else:
+            res = res_final
+
+        ## Catching expired domain websites
+        if len(r.history) > 0:
+            for response in r.history:
+                if str(response) == '<Response [302]>':
+                    res = [""]
     except:
         res = [""]
 
-    print("Hyperlinks gathered.")
+    print("Hyperlinks gathered.\n")
 
     return res
 
 def get_hyperlinks_dynamic(url):
     try:
-        print("--- Gathering hyperlinks dynamically")
-        driver.set_page_load_timeout(10)
+        print("- Gathering hyperlinks dynamically")
+        driver.set_page_load_timeout(20)
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
         links = soup.find_all("a")
@@ -126,9 +144,9 @@ def refund_policy_matcher(paragraf):
             if word not in stop_words:
                 cleaned_words.append(word)
     except:
-        words = ""
+        cleaned_words = ""
 
-    mask = np.isin(keyword_refund, words)
+    mask = pd.Series(cleaned_words).str.contains("|".join(keyword_refund))
 
     count_refund = np.count_nonzero(mask)
     if count_refund > 0:
@@ -184,8 +202,8 @@ def paragraf_extractor(url):
 
 def paragraf_extractor_dynamic(url):
     try:
-        print("--- Extracting paragraphs dynamically")
-        driver.set_page_load_timeout(10)
+        print("- Extracting paragraphs dynamically")
+        driver.set_page_load_timeout(20)
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
@@ -233,6 +251,7 @@ def paragraf_extractor_dynamic(url):
 def broken_link_score(df, hyperlinks):
     """Return score (percentage) of broken link in a website"""
 
+    print("Checking broken link...")
     avoid = pd.Series(hyperlinks).str.contains("wa.me") | pd.Series(hyperlinks).str.contains("youtube") | \
     pd.Series(hyperlinks).str.contains("linkedin") | pd.Series(hyperlinks).str.contains("facebook") | \
     pd.Series(hyperlinks).str.contains("cloudflare") | pd.Series(hyperlinks).str.contains("twitter") | \
@@ -241,25 +260,27 @@ def broken_link_score(df, hyperlinks):
     pd.Series(hyperlinks).str.match("tel") | pd.Series(hyperlinks).str.contains("gitlab") | \
     pd.Series(hyperlinks).str.contains("Tel") | pd.Series(hyperlinks).str.contains("jobstreet") | \
     pd.Series(hyperlinks).str.contains("download") | pd.Series(hyperlinks).str.contains("google") | \
-    pd.Series(hyperlinks).str.contains("javaScript")
+    pd.Series(hyperlinks).str.contains("javaScript") | pd.Series(hyperlinks).str.contains("_blank")
 
     hyperlinks = list(pd.Series(hyperlinks)[~avoid].values)
     if len(hyperlinks) > 10:
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, \
-        headers = {'User-Agent': np.random.choice(user_agent_list)}, \
-        timeout=10) for x in hyperlinks)
+        headers = {}, \
+        timeout=15) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 3)
     
-    broken_links = {}
+    links = {}
     i = 0
-    for response in rs_res:
-        if str(response) != '<Response [200]>':
+    if len(hyperlinks) == 1 and hyperlinks[0] == "":
+        links = "No hyperlinks gathered"
+    else:
+        for response in rs_res:
             try:
-                broken_links[response.request.url] = str(response)
+                links[response.request.url] = str(response)
             except:
-                broken_links[hyperlinks[i]] = 'None'
-        i += 1
+                links[hyperlinks[i]] = 'No Response/Timeout'
+            i += 1
 
     status_not_ok = np.count_nonzero(np.array(rs_res, dtype=str) != '<Response [200]>')
     status_length = len(rs_res)
@@ -270,73 +291,53 @@ def broken_link_score(df, hyperlinks):
         score = 100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": score,\
-                           "broken_links": str(broken_links)}, index=[0])
+                           "links_response": str(links)}, index=[0])
 
-    print("Broken links checked.")
+    print("Broken links checked.\n")
 
     return res_df
 
-def important_links_check(df, hyperlinks):
-    """Return boolean of important links (contact, about, tnc) existance"""
+def about_us_check(df, hyperlinks):
+    """Return boolean of about us link existance"""
 
-    keyword_contact = ["contact", "kontak", "call", "hubungi"]
+    print("Checking about us...")
     keyword_about = ["about", "tentang"]
-    keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
-                   "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
-                   "agreement", "exchange", "return", "retur", "tukar", "faq", "aturan", \
-                   "pengembalian", "penukaran", "perjanjian"]
     avoid = ["conditioner", "termurah", "termahal", "expired", "expire", "renewal"]
-
-    contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
-    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
-    contact_count = 1 if np.count_nonzero(np.array(hyperlinks)[contact_mask]) >= 1 else 0
     
     about_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_about)) \
     & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
     about_count = 1 if np.count_nonzero(np.array(hyperlinks)[about_mask]) >= 1 else 0
-
-    tnc_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_tnc)) \
-    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
-    tnc_count = 1 if np.count_nonzero(np.array(hyperlinks)[tnc_mask]) >= 1 else 0
-
-    exists = [contact_count, about_count, tnc_count]
     
     ## Check for inexact link
     try:
-        if np.sum(exists) < 3:
+        if about_count < 1:
            base_url = str(df['website'].values[0])
            links = get_hyperlinks_dynamic(url_format_handler(base_url))
            if len(links) > 0:
                for a in links:
-                    ## Contact
-                    if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
-                        contact_count = 1
-                    ## About
+                    ## About Us Link Finder
                     if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_about)).any():
                         about_count = 1
-                    ## TnC
-                    if (pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)) \
-                    & ~pd.Series(str(a)).str.lower().str.contains('|'.join(avoid))).any():
-                        tnc_count = 1
     except:
         pass
 
-    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_contact_us_exist": int(contact_count),\
-                          "link_about_us_exist": int(about_count), "link_tnc_exist": int(tnc_count)}, index=[0])
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_about_us_exist": int(about_count)}, index=[0])
 
-    print("Important links checked.")
+    print("About us checked.\n")
 
     return res_df
 
 def contact_us_score(df, hyperlinks):
     """Return score (percentage) of contact us component in a website"""
 
+    print("Checking contact us...")
     keyword_contact = ["contact", "kontak", "call", "hubungi"]
     avoid = ["conditioner", "termurah", "termahal"]
 
     contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
     & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
 
+    ## Email, Telephon, Link
     exists = [0,0,0]
         
     try:
@@ -344,7 +345,7 @@ def contact_us_score(df, hyperlinks):
     except:
         contact_links = []
     
-    # Check on all contact links
+    ## Check on all contact links
     if len(contact_links) > 0:
         for link in contact_links:
             paragraf = paragraf_extractor(link)
@@ -386,29 +387,34 @@ def contact_us_score(df, hyperlinks):
            for a in links:
                 ## Contact Link Filtering
                 if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
+                    print("Got you:"  + str(a))
                     try:
                         link = base_url + "/" + a['href']
                         exists[2] = 1
 
                         ## Search for cu features
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
+                        print(paragraf)
                         exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
                         exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
                     except:
+                        print("Asup except")
                         continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "contact_us_score": score, \
-                           "cu_email_exist": int(exists[0]), "cu_phone_number_exist": int(exists[1])}, index=[0])
+                           "cu_email_exist": int(exists[0]), "cu_phone_number_exist": int(exists[1]), \
+                           "link_contact_us_exist": int(exists[2])}, index=[0])
 
-    print("Contact us checked.")
+    print("Contact us checked.\n")
 
     return res_df
 
 def tnc_score(df, hyperlinks):
     """Return score (percentage) of tnc component in a website"""
 
+    print("Checking TnC...")
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
                    "tnc", "kebijakan", "refund", "disclaimer", "policy", "prasyarat", \
                    "agreement", "exchange", "return", "retur", "tukar", "faq", "aturan", \
@@ -423,7 +429,9 @@ def tnc_score(df, hyperlinks):
     except:
         tnc_links = []
 
+    ## Refund Policy, Link
     exists = [0,0]
+
     if len(tnc_links) > 0:
         exists[1] = 1
         ## Check on all tnc links
@@ -460,28 +468,33 @@ def tnc_score(df, hyperlinks):
     score = np.count_nonzero(np.array(exists))/len(exists)*100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "tnc_score": score, \
-                           "tnc_refund_policy_exist": exists[0]}, index=[0])
+                           "tnc_refund_policy_exist": int(exists[0]), "link_tnc_exist": int(exists[1])}, index=[0])
 
-    print("TnC checked.")
+    print("TnC checked.\n")
 
     return res_df
 
 def orchestrator(url):
 
     start_time = time.time()
-    print("--- " + url + " ---")
+    print("\n--- " + url + " ---")
     df = pd.DataFrame({"merchant_name": url, "website": url}, index=[0])
     hyperlinks = get_hyperlinks(url)
+    if len(hyperlinks) == 0:
+        hyperlinks = get_hyperlinks(url)
 
     broken_df = broken_link_score(df, hyperlinks)
-    important_df = important_links_check(df, hyperlinks)
+    if broken_df['broken_link_score'].values[0] == 100:
+                broken_df = broken_link_score(df, hyperlinks)
+
+    about_df = about_us_check(df, hyperlinks)
     contact_df = contact_us_score(df, hyperlinks)
     tnc_df = tnc_score(df, hyperlinks)
 
-    dfs = [broken_df, important_df, contact_df, tnc_df]
+    dfs = [broken_df, about_df, contact_df, tnc_df]
     dfs = [df.set_index("merchant_name") for df in dfs]
     res = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
     res['total_score'] = 'null'
-    print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
+    print("--- Time taken: %s seconds ---" % (time.time() - start_time))
 
     return res
