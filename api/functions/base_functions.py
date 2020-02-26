@@ -189,8 +189,7 @@ def paragraf_extractor(url):
 
         list_p = []
         for p in all_ps:
-            if not re.search('<div', str(p)):
-                list_p.append(unidecode.unidecode(p.getText()) + "\n")
+            list_p.append(unidecode.unidecode(p.getText()) + "\n")
 
         paragraf = "".join(list_p)
         paragraf += meta_property + meta_name + email + div_address
