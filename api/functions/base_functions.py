@@ -16,6 +16,7 @@ from random import sample
 from flask import request, jsonify
 from selenium import webdriver
 import time
+import json
 nltk.download("stopwords")
 
 driver = webdriver.Chrome()
@@ -148,8 +149,6 @@ def refund_policy_matcher(paragraf):
                 cleaned_words.append(word)
     except:
         cleaned_words = ""
-
-    print(cleaned_words)
 
     mask = pd.Series(cleaned_words).str.contains("|".join(keyword_refund))
 
@@ -475,6 +474,30 @@ def tnc_score(df, hyperlinks):
 
     return res_df
 
+def calculate_score(features):
+    """Return fraud prediction score of a website, 0-100 (Good - Bad)"""
+    
+    ## Post API URL
+    url = 'http://127.0.0.1:5000/api/v1/model'
+    
+    ## Process Test Data
+    df = pd.DataFrame(features, index=[0])
+    columns = ['broken_link_score', 'link_contact_us_exist', 'cu_email_exist',\
+    'cu_phone_number_exist', 'link_about_us_exist', 'link_tnc_exist',\
+    'tnc_refund_policy_exist', 'contact_us_score', 'tnc_score']
+    test_df = df[columns]
+    data = test_df.values.tolist()
+    data = json.dumps(data)
+
+    ## Post to Model API
+    headers = {'content-type': 'application/json', 'Accept-Charset': 'UTF-8'}
+    score = requests.post(url, data=data, headers=headers).text.rstrip()
+
+    df['fraud_score'] = score
+    res = df
+
+    return res
+
 def orchestrator(url):
 
     start_time = time.time()
@@ -494,8 +517,8 @@ def orchestrator(url):
 
     dfs = [broken_df, about_df, contact_df, tnc_df]
     dfs = [df.set_index("merchant_name") for df in dfs]
-    res = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
-    res['total_score'] = 'null'
+    features = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
+    res = calculate_score(features).to_dict('r')[0]
     print("--- Time taken: %s seconds ---" % (time.time() - start_time))
 
     return res

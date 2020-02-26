@@ -63,7 +63,7 @@ def api_url_batch():
 def make_prediction():
     # Receive line of features, return prediction score
     data = request.get_json()
-    prediction = np.array2string(model.predict(data))
+    prediction = model.predict_proba(data)[0][1]
 
     return jsonify(prediction) 
 
