@@ -196,8 +196,7 @@ def paragraf_extractor(url):
 
         list_p = []
         for p in all_ps:
-            if not re.search('<div', str(p)):
-                list_p.append(unidecode.unidecode(p.getText()) + "\n")
+            list_p.append(unidecode.unidecode(p.getText()) + "\n")
 
         paragraf = "".join(list_p)
         paragraf += meta_property + meta_name + email + div_address
@@ -219,8 +218,7 @@ def paragraf_extractor_dynamic(url):
 
         list_p = []
         for p in all_ps:
-            if not re.search('<div', str(p)):
-                list_p.append(unidecode.unidecode(p.getText()) + "\n")
+            list_p.append(unidecode.unidecode(p.getText()) + "\n")
 
         ## CloudFare Email Getter
         if re.search('data-cfemail', str(soup)) is not None:
@@ -394,18 +392,15 @@ def contact_us_score(df, hyperlinks):
            for a in links:
                 ## Contact Link Filtering
                 if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
-                    print("Got you:"  + str(a))
                     try:
                         link = base_url + "/" + a['href']
                         exists[2] = 1
 
                         ## Search for cu features
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
-                        print(paragraf)
                         exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
                         exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
                     except:
-                        print("Asup except")
                         continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
