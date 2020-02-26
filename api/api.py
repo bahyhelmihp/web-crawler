@@ -4,6 +4,8 @@ import flask
 from flask import request, jsonify
 from functions.base_functions import orchestrator
 from functions.batch_processor import batch_process
+import numpy as np
+import pickle as p
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = False
@@ -24,6 +26,7 @@ def api_url():
 
     # Create an empty list for our results
     results = orchestrator(url)
+    
     return jsonify(results)
 
 @app.route('/api/v1/crawler-batch', methods=['GET'])
@@ -53,7 +56,18 @@ def api_url_batch():
 
     # Create an empty list for our results
     res = batch_process(url, start, end, name)
+    
     return res
 
+@app.route('/api/v1/model', methods=['POST'])
+def make_prediction():
+    # Receive line of features, return prediction score
+    data = request.get_json()
+    prediction = np.array2string(model.predict(data))
+
+    return jsonify(prediction) 
+
 if __name__ == "__main__":
+    modelfile = 'models/final_prediction.pickle'
+    model = p.load(open(modelfile, 'rb'))
     app.run(host='0.0.0.0')

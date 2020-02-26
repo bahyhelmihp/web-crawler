@@ -75,16 +75,19 @@ def get_hyperlinks(url):
             else:
                 res_final.append(str(url))
 
+        ## Check if domain expired/redirects
+        domain = base_url.split("//")[1]
+        if any(domain in url for url in res_final):
+            pass
+        else:
+            res_final = [""]
+
+        ## If website does not return hyperlink
         if len(res) == 0 or len(res_final) == 0:
             res = [""]
         else:
             res = res_final
-
-        ## Catching expired domain websites
-        if len(r.history) > 0:
-            for response in r.history:
-                if str(response) == '<Response [302]>':
-                    res = [""]
+        
     except:
         res = [""]
 
@@ -145,6 +148,8 @@ def refund_policy_matcher(paragraf):
                 cleaned_words.append(word)
     except:
         cleaned_words = ""
+
+    print(cleaned_words)
 
     mask = pd.Series(cleaned_words).str.contains("|".join(keyword_refund))
 
@@ -431,8 +436,9 @@ def tnc_score(df, hyperlinks):
         exists[1] = 1
         ## Check on all tnc links
         for link in tnc_links:
+            print(link)
             paragraf = paragraf_extractor(link)
-            exists[0] = refund_policy_matcher(paragraf)
+            exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
 
     ## Check refund policy on HomePage
     if exists[0] == 0:
@@ -456,7 +462,7 @@ def tnc_score(df, hyperlinks):
 
                         ## Search for refund_policy features
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
-                        exists[0] = refund_policy_matcher(paragraf)
+                        exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
                     except:
                         continue
 
