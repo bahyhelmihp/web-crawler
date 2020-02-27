@@ -17,8 +17,11 @@ from flask import request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
-nltk.download("stopwords")
+import json
 
+nltk.download("stopwords")
+hyperlinks_dynamic = False
+dynamic_links = []
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
@@ -26,6 +29,7 @@ options.add_argument("start-maximized")
 options.add_argument("disable-infobars")
 options.add_argument("--disable-extensions")
 driver = webdriver.Chrome(chrome_options=options)
+
 user_agent_list = [
 
     #Chrome
@@ -55,10 +59,31 @@ user_agent_list = [
     'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
 ]
+    
+def reset_crawler():
+    global driver
+    global hyperlinks_dynamic
+    global dynamic_links
+
+    ## Quit driver
+    driver.quit()
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("start-maximized")
+    options.add_argument("disable-infobars")  
+    options.add_argument("--disable-extensions")
+    driver = webdriver.Chrome(chrome_options=options)
+    hyperlinks_dynamic = False
+    dynamic_links = []
 
 def url_format_handler(url):
     """Return url with http/https prefix if not written"""
 
+    ## Remove whitspaces in URL
+    url = url.strip()
+
+    ## Adding schema
     if not url.startswith("http") and not url.startswith("https"):
         url = "http://" + url
 
@@ -71,7 +96,7 @@ def get_hyperlinks(url):
     base_url = url_format_handler(url)
     session = HTMLSession()
     try:
-        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
+        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=20)
         res = list(r.html.absolute_links)
         
         ## If r-html anchor failed, concate manually
@@ -82,17 +107,21 @@ def get_hyperlinks(url):
             else:
                 res_final.append(str(url))
 
+        ## Check if domain expired/redirects
+        domain = base_url.split("//")[1]
+        if any(domain in url for url in res_final):
+            pass
+        else:
+            res_final = [""]
+
+        ## If website does not return hyperlink
         if len(res) == 0 or len(res_final) == 0:
             res = [""]
         else:
             res = res_final
-
-        ## Catching expired domain websites
-        if len(r.history) > 0:
-            for response in r.history:
-                if str(response) == '<Response [302]>':
-                    res = [""]
-    except:
+        
+    except Exception as e:
+        print(e)
         res = [""]
 
     print("Hyperlinks gathered.\n")
@@ -100,13 +129,26 @@ def get_hyperlinks(url):
     return res
 
 def get_hyperlinks_dynamic(url):
+    global hyperlinks_dynamic
+    global dynamic_links
+    
     try:
-        print("- Gathering hyperlinks dynamically")
-        driver.set_page_load_timeout(20)
-        driver.get(url)
-        soup = bs(driver.page_source, 'html.parser')
-        links = soup.find_all("a")
-    except:
+        ## Do not gather (again) if has been gathered before
+        if hyperlinks_dynamic == True:
+            print("- Using previously gathered hyperlinks")
+            links = dynamic_links
+        else:
+            print("- Gathering hyperlinks dynamically")
+            driver.set_page_load_timeout(20)
+            driver.get(url)
+            soup = bs(driver.page_source, 'html.parser')
+            links = soup.find_all("a")
+
+            ## Set to true, collect hyperlinks
+            hyperlinks_dynamic = True
+            dynamic_links = links
+    except Exception as e:
+        print(e)
         links = []
 
     return links
@@ -150,7 +192,8 @@ def refund_policy_matcher(paragraf):
         for word in words:
             if word not in stop_words:
                 cleaned_words.append(word)
-    except:
+    except Exception as e:
+        print(e)
         cleaned_words = ""
 
     mask = pd.Series(cleaned_words).str.contains("|".join(keyword_refund))
@@ -163,7 +206,7 @@ def refund_policy_matcher(paragraf):
 
 def paragraf_extractor(url):
     try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=20)
         soup = bs(page.content, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
         + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
@@ -201,7 +244,8 @@ def paragraf_extractor(url):
         paragraf = "".join(list_p)
         paragraf += meta_property + meta_name + email + div_address
         paragraf = paragraf.lower()
-    except:
+    except Exception as e:
+        print(e)
         paragraf = ""
 
     return paragraf
@@ -248,7 +292,8 @@ def paragraf_extractor_dynamic(url):
         paragraf = "".join(list_p)
         paragraf += meta_property + meta_name + email + div_address
         paragraf = paragraf.lower()
-    except:
+    except Exception as e:
+        print(e)
         paragraf = ""
 
     return paragraf
@@ -272,7 +317,7 @@ def broken_link_score(df, hyperlinks):
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, \
         headers = {}, \
-        timeout=15) for x in hyperlinks)
+        timeout=20) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 3)
     
     links = {}
@@ -283,7 +328,8 @@ def broken_link_score(df, hyperlinks):
         for response in rs_res:
             try:
                 links[response.request.url] = str(response)
-            except:
+            except Exception as e:
+                print(e)
                 links[hyperlinks[i]] = 'No Response/Timeout'
             i += 1
 
@@ -292,7 +338,8 @@ def broken_link_score(df, hyperlinks):
 
     try:
         score = status_not_ok/status_length*100
-    except:
+    except Exception as e:
+        print(e)
         score = 100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": score,\
@@ -323,7 +370,8 @@ def about_us_check(df, hyperlinks):
                     ## About Us Link Finder
                     if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_about)).any():
                         about_count = 1
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_about_us_exist": int(about_count)}, index=[0])
@@ -347,7 +395,8 @@ def contact_us_score(df, hyperlinks):
         
     try:
         contact_links = list(pd.Series(hyperlinks)[contact_mask].values)
-    except:
+    except Exception as e:
+        print(e)
         contact_links = []
     
     ## Check on all contact links
@@ -400,8 +449,8 @@ def contact_us_score(df, hyperlinks):
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
                         exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
                         exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
-                    except:
-                        continue
+                    except Exception as e:
+                        print(e)
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
 
@@ -428,7 +477,8 @@ def tnc_score(df, hyperlinks):
 
     try:
         tnc_links = pd.Series(hyperlinks)[tnc_mask].values
-    except:
+    except Exception as e:
+        print(e)
         tnc_links = []
 
     ## Refund Policy, Link
@@ -439,7 +489,7 @@ def tnc_score(df, hyperlinks):
         ## Check on all tnc links
         for link in tnc_links:
             paragraf = paragraf_extractor(link)
-            exists[0] = refund_policy_matcher(paragraf)
+            exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
 
     ## Check refund policy on HomePage
     if exists[0] == 0:
@@ -463,8 +513,9 @@ def tnc_score(df, hyperlinks):
 
                         ## Search for refund_policy features
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
-                        exists[0] = refund_policy_matcher(paragraf)
-                    except:
+                        exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
+                    except Exception as e:
+                        print(e)
                         continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
@@ -475,6 +526,30 @@ def tnc_score(df, hyperlinks):
     print("TnC checked.\n")
 
     return res_df
+
+def calculate_score(features):
+    """Return fraud prediction score of a website, 0-100 (Good - Bad)"""
+    
+    ## Post API URL
+    url = 'http://127.0.0.1:5000/api/v1/model'
+    
+    ## Process Test Data
+    df = pd.DataFrame(features, index=[0])
+    columns = ['broken_link_score', 'link_contact_us_exist', 'cu_email_exist',\
+    'cu_phone_number_exist', 'link_about_us_exist', 'link_tnc_exist',\
+    'tnc_refund_policy_exist', 'contact_us_score', 'tnc_score']
+    test_df = df[columns]
+    data = test_df.values.tolist()
+    data = json.dumps(data)
+
+    ## Post to Model API
+    headers = {'content-type': 'application/json', 'Accept-Charset': 'UTF-8'}
+    score = requests.post(url, data=data, headers=headers).text.rstrip()
+
+    df['fraud_score'] = score
+    res = df
+
+    return res
 
 def orchestrator(url):
 
@@ -495,8 +570,9 @@ def orchestrator(url):
 
     dfs = [broken_df, about_df, contact_df, tnc_df]
     dfs = [df.set_index("merchant_name") for df in dfs]
-    res = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
-    res['total_score'] = 'null'
-    print("--- Time taken: %s seconds ---" % (time.time() - start_time))
+    features = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
+    print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
+    res = calculate_score(features).to_dict('r')[0]
+    reset_crawler()
 
     return res
