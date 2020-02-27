@@ -15,13 +15,20 @@ import nltk
 from random import sample
 from flask import request, jsonify
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import time
 import json
-nltk.download("stopwords")
 
-driver = webdriver.Chrome()
+nltk.download("stopwords")
 hyperlinks_dynamic = False
 dynamic_links = []
+options = Options()
+options.add_argument("--headless")
+options.add_argument("--no-sandbox")
+options.add_argument("start-maximized")
+options.add_argument("disable-infobars")
+options.add_argument("--disable-extensions")
+driver = webdriver.Chrome(chrome_options=options)
 
 user_agent_list = [
 
@@ -60,7 +67,13 @@ def reset_crawler():
 
     ## Quit driver
     driver.quit()
-    driver = webdriver.Chrome()
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("start-maximized")
+    options.add_argument("disable-infobars")  
+    options.add_argument("--disable-extensions")
+    driver = webdriver.Chrome(chrome_options=options)
     hyperlinks_dynamic = False
     dynamic_links = []
 
@@ -438,7 +451,6 @@ def contact_us_score(df, hyperlinks):
                         exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
                     except Exception as e:
                         print(e)
-                        continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
 
