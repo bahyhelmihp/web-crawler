@@ -20,6 +20,9 @@ import json
 nltk.download("stopwords")
 
 driver = webdriver.Chrome()
+hyperlinks_dynamic = False
+dynamic_links = []
+
 user_agent_list = [
 
     #Chrome
@@ -49,10 +52,25 @@ user_agent_list = [
     'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
 ]
+    
+def reset_crawler():
+    global driver
+    global hyperlinks_dynamic
+    global dynamic_links
+
+    ## Quit driver
+    driver.quit()
+    driver = webdriver.Chrome()
+    hyperlinks_dynamic = False
+    dynamic_links = []
 
 def url_format_handler(url):
     """Return url with http/https prefix if not written"""
 
+    ## Remove whitspaces in URL
+    url = url.strip()
+
+    ## Adding schema
     if not url.startswith("http") and not url.startswith("https"):
         url = "http://" + url
 
@@ -65,7 +83,7 @@ def get_hyperlinks(url):
     base_url = url_format_handler(url)
     session = HTMLSession()
     try:
-        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
+        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=20)
         res = list(r.html.absolute_links)
         
         ## If r-html anchor failed, concate manually
@@ -89,7 +107,8 @@ def get_hyperlinks(url):
         else:
             res = res_final
         
-    except:
+    except Exception as e:
+        print(e)
         res = [""]
 
     print("Hyperlinks gathered.\n")
@@ -97,13 +116,26 @@ def get_hyperlinks(url):
     return res
 
 def get_hyperlinks_dynamic(url):
+    global hyperlinks_dynamic
+    global dynamic_links
+    
     try:
-        print("- Gathering hyperlinks dynamically")
-        driver.set_page_load_timeout(20)
-        driver.get(url)
-        soup = bs(driver.page_source, 'html.parser')
-        links = soup.find_all("a")
-    except:
+        ## Do not gather (again) if has been gathered before
+        if hyperlinks_dynamic == True:
+            print("- Using previously gathered hyperlinks")
+            links = dynamic_links
+        else:
+            print("- Gathering hyperlinks dynamically")
+            driver.set_page_load_timeout(20)
+            driver.get(url)
+            soup = bs(driver.page_source, 'html.parser')
+            links = soup.find_all("a")
+
+            ## Set to true, collect hyperlinks
+            hyperlinks_dynamic = True
+            dynamic_links = links
+    except Exception as e:
+        print(e)
         links = []
 
     return links
@@ -147,7 +179,8 @@ def refund_policy_matcher(paragraf):
         for word in words:
             if word not in stop_words:
                 cleaned_words.append(word)
-    except:
+    except Exception as e:
+        print(e)
         cleaned_words = ""
 
     mask = pd.Series(cleaned_words).str.contains("|".join(keyword_refund))
@@ -160,7 +193,7 @@ def refund_policy_matcher(paragraf):
 
 def paragraf_extractor(url):
     try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=15)
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=20)
         soup = bs(page.content, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
         + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
@@ -198,7 +231,8 @@ def paragraf_extractor(url):
         paragraf = "".join(list_p)
         paragraf += meta_property + meta_name + email + div_address
         paragraf = paragraf.lower()
-    except:
+    except Exception as e:
+        print(e)
         paragraf = ""
 
     return paragraf
@@ -245,7 +279,8 @@ def paragraf_extractor_dynamic(url):
         paragraf = "".join(list_p)
         paragraf += meta_property + meta_name + email + div_address
         paragraf = paragraf.lower()
-    except:
+    except Exception as e:
+        print(e)
         paragraf = ""
 
     return paragraf
@@ -269,7 +304,7 @@ def broken_link_score(df, hyperlinks):
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, \
         headers = {}, \
-        timeout=15) for x in hyperlinks)
+        timeout=20) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 3)
     
     links = {}
@@ -280,7 +315,8 @@ def broken_link_score(df, hyperlinks):
         for response in rs_res:
             try:
                 links[response.request.url] = str(response)
-            except:
+            except Exception as e:
+                print(e)
                 links[hyperlinks[i]] = 'No Response/Timeout'
             i += 1
 
@@ -289,7 +325,8 @@ def broken_link_score(df, hyperlinks):
 
     try:
         score = status_not_ok/status_length*100
-    except:
+    except Exception as e:
+        print(e)
         score = 100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": score,\
@@ -320,7 +357,8 @@ def about_us_check(df, hyperlinks):
                     ## About Us Link Finder
                     if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_about)).any():
                         about_count = 1
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_about_us_exist": int(about_count)}, index=[0])
@@ -344,7 +382,8 @@ def contact_us_score(df, hyperlinks):
         
     try:
         contact_links = list(pd.Series(hyperlinks)[contact_mask].values)
-    except:
+    except Exception as e:
+        print(e)
         contact_links = []
     
     ## Check on all contact links
@@ -397,7 +436,8 @@ def contact_us_score(df, hyperlinks):
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
                         exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
                         exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
-                    except:
+                    except Exception as e:
+                        print(e)
                         continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
@@ -425,7 +465,8 @@ def tnc_score(df, hyperlinks):
 
     try:
         tnc_links = pd.Series(hyperlinks)[tnc_mask].values
-    except:
+    except Exception as e:
+        print(e)
         tnc_links = []
 
     ## Refund Policy, Link
@@ -435,7 +476,6 @@ def tnc_score(df, hyperlinks):
         exists[1] = 1
         ## Check on all tnc links
         for link in tnc_links:
-            print(link)
             paragraf = paragraf_extractor(link)
             exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
 
@@ -462,7 +502,8 @@ def tnc_score(df, hyperlinks):
                         ## Search for refund_policy features
                         paragraf = paragraf_extractor_dynamic(url_format_handler(link))
                         exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
-                    except:
+                    except Exception as e:
+                        print(e)
                         continue
 
     score = np.count_nonzero(np.array(exists))/len(exists)*100
@@ -518,7 +559,8 @@ def orchestrator(url):
     dfs = [broken_df, about_df, contact_df, tnc_df]
     dfs = [df.set_index("merchant_name") for df in dfs]
     features = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
+    print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
     res = calculate_score(features).to_dict('r')[0]
-    print("--- Time taken: %s seconds ---" % (time.time() - start_time))
+    reset_crawler()
 
     return res

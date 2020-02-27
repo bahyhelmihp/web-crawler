@@ -23,7 +23,7 @@ def batch_process(url, start, end, name):
     df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "link_contact_us_exist": [], \
             "cu_email_exist": [], "cu_phone_number_exist": [], "link_about_us_exist": [],\
             "link_tnc_exist": [], "tnc_refund_policy_exist": [], "contact_us_score": [], \
-            "tnc_score": [], "links_response": [], "website": [], "label": []})
+            "tnc_score": [], "links_response": [], "website": [], "fraud_score": []})
     
     input_df = input_df.reset_index()
     try:
@@ -51,19 +51,23 @@ def batch_process(url, start, end, name):
 
             dfs = [broken_df, about_df, contact_df, tnc_df]
             dfs = [df.set_index("merchant_name") for df in dfs]
-            res = pd.concat(dfs, axis=1, sort=False).reset_index()
-            res['label'] = df['label'].values[0]
+            features = pd.concat(dfs, axis=1, sort=False).reset_index().to_dict('r')[0]
+            print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
+
+            res = calculate_score(features).to_dict('r')[0]
             res['website'] = df['website'].values[0]
 
-            df_res = pd.concat([df_res, res], sort=False)
+            df_res = pd.concat([df_res, pd.DataFrame(res, index=[i+1-start])], sort=False)
             res_url = './datasets/' + name + '.csv'
             df_res.to_csv(res_url)
-            print("--- Time taken: %s seconds ---" % (time.time() - start_time))
+            reset_crawler()
+            
 
-        print("--- Start Batch: %s ---" % batch_start_time.strftime("%Y-%m-%d %H:%M:%S"))
-        print("--- End Batch: %s ---" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print("\n--- Start Batch: %s ---" % batch_start_time.strftime("%Y-%m-%d %H:%M:%S"))
+        print("--- End Batch: %s ---\n" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         return str(i+1-start) + " line(s) successfully written."
-    except:
+    except Exception as e:
+        print(e)
         res_url = './datasets/' + name + '.csv'
         df_res.to_csv(res_url)
         print("--- Start Batch: %s ---" % batch_start_time.strftime("%Y-%m-%d %H:%M:%S"))
