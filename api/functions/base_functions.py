@@ -544,7 +544,7 @@ def calculate_score(features):
 
     ## Post to Model API
     headers = {'content-type': 'application/json', 'Accept-Charset': 'UTF-8'}
-    score = requests.post(url, data=data, headers=headers).text.rstrip()
+    score = float(requests.post(url, data=data, headers=headers).text.rstrip()) 
 
     df['fraud_score'] = score
     res = df
