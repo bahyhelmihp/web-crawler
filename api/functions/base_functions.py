@@ -525,14 +525,14 @@ def calculate_score(features):
     df = pd.DataFrame(features, index=[0])
     columns = ['broken_link_score', 'link_contact_us_exist', 'cu_email_exist',\
     'cu_phone_number_exist', 'link_about_us_exist', 'link_tnc_exist',\
-    'tnc_refund_policy_exist', 'contact_us_score', 'tnc_score']
+    'tnc_refund_policy_exist']
     test_df = df[columns]
-    data = test_df.values.tolist()
-    data = json.dumps(data)
+    data = test_df.to_json()
 
     ## Post to Model API
     headers = {'content-type': 'application/json', 'Accept-Charset': 'UTF-8'}
-    score = float(requests.post(url, data=data, headers=headers).text.rstrip())
+    req = requests.post(url, data=data, headers=headers).text
+    score = float(req)
 
     df['fraud_score'] = score
     res = df

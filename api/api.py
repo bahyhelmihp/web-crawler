@@ -6,6 +6,8 @@ from functions.base_functions import orchestrator
 from functions.batch_processor import batch_process
 import numpy as np
 import pickle as p
+import pandas as pd
+import json
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = False
@@ -63,9 +65,11 @@ def api_url_batch():
 def make_prediction():
     # Receive line of features, return prediction score
     data = request.get_json()
-    prediction = model.predict_proba(data)[0][1]
+    test_data = pd.DataFrame(data)
+    prediction = model.predict_proba(test_data)[0][1]
+    res = str(prediction)
 
-    return jsonify(prediction) 
+    return res
 
 if __name__ == "__main__":
     modelfile = 'models/final_prediction.pickle'
