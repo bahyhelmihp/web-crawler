@@ -59,7 +59,7 @@ def api_url_batch():
     # Create an empty list for our results
     res = batch_process(url, start, end, name)
     
-    return res
+    return jsonify(res)
 
 @app.route('/api/v1/model', methods=['POST'])
 def make_prediction():
