@@ -58,6 +58,7 @@ docs/_build/
 target/
 
 # exception to the rule
-!api/datasets/Analysis Result.ipynb
-!api/datasets/Modelling.ipynb
+!api/datasets/*.ipynb
 !api/datasets/merchants_cleaned.csv
+!api/datasets/df_cleaned.csv
+!api/datasets/df_raw.csv
