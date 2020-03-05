@@ -36,25 +36,25 @@ def api_url_batch():
     # Check if an url was provided as part of the URL.
     # If url is provided, assign it to a variable.
     # If no url is provided, display an error in the browser.
-    if 'url' in request.args:
-        url = str(request.args['url'])
+    if 'input_file' in request.args:
+        url = str(request.args['input_file'])
     else:
         return "Error: No url field provided. Please specify an url."
     
-    if 'start' in request.args:
-        start = int(request.args['start'])
+    if 'start_index' in request.args:
+        start = int(request.args['start_index'])
     else:
         start = 0
 
-    if 'end' in request.args:
-        end = int(request.args['end'])
+    if 'end_index' in request.args:
+        end = int(request.args['end_index'])
     else:
         end = 0
 
-    if 'name' in request.args:
-        name = str(request.args['name'])
+    if 'output_file' in request.args:
+        name = str(request.args['output_file'])
     else:
-        name = 'results'
+        name = 'output_file'
 
     # Create an empty list for our results
     res = batch_process(url, start, end, name)
