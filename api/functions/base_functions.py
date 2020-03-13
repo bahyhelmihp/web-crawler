@@ -71,7 +71,7 @@ def url_format_handler(url):
     url = url.strip()
 
     ## Adding schema
-    if not url.startswith("http") and not url.startswith("https"):
+    if not url.lower().startswith("http") and not url.lower().startswith("https"):
         url = "http://" + url
 
     return url

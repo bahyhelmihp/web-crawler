@@ -15,7 +15,8 @@ app.config["DEBUG"] = False
 @app.route('/', methods=['GET'])
 def home():
     return '''Home'''
-    
+
+## Endpoint for single crawling + score    
 @app.route('/api/v1/crawler', methods=['GET'])
 def api_url():
     # Check if an url was provided as part of the URL.
@@ -31,6 +32,7 @@ def api_url():
     
     return jsonify(results)
 
+## Endpoint for batch crawling + score
 @app.route('/api/v1/crawler-batch', methods=['GET'])
 def api_url_batch():
     # Check if an url was provided as part of the URL.
@@ -56,11 +58,18 @@ def api_url_batch():
     else:
         name = 'output_file'
 
+    ## Crawl with/without fraud score, use train = 'true' if you wanted fraud score to be excluded
+    if 'train' in request.args:
+        train = str(request.args['train']).lower()
+    else:
+        train = 'true'
+
     # Create an empty list for our results
-    res = batch_process(url, start, end, name)
+    res = batch_process(url, start, end, name, train)
     
     return jsonify(res)
 
+## Endpoint for single score prediction
 @app.route('/api/v1/model', methods=['POST'])
 def make_prediction():
     # Receive line of features, return prediction score

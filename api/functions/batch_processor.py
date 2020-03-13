@@ -8,7 +8,7 @@ import logging
 import time
 import datetime
 
-def batch_process(url, start, end, name):
+def batch_process(url, start, end, name, train):
     """Function to batch process crawling function
     Input: CSV URL, index to read, output file name
     Output: CSV Results"""
@@ -19,11 +19,14 @@ def batch_process(url, start, end, name):
     ## Only for modelling purpose, reviewed label not needed
     if start == 0 and end == 0:
         end = len(input_df)
-    
+
     df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "link_contact_us_exist": [], \
             "cu_email_exist": [], "cu_phone_number_exist": [], "link_about_us_exist": [],\
             "link_tnc_exist": [], "tnc_refund_policy_exist": [], "contact_us_score": [], \
             "tnc_score": [], "links_response": [], "website": [], "fraud_score": []})
+
+    if train == 'true':
+        df_res.drop("fraud_score", axis=1, inplace=True)
     
     input_df = input_df.reset_index()
     try:
@@ -54,7 +57,12 @@ def batch_process(url, start, end, name):
             features = pd.concat(dfs, axis=1, sort=False).reset_index().to_dict('r')[0]
             print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
 
-            res = calculate_score(features).to_dict('r')[0]
+            ## Do calculate score if train == false
+            if train == 'false':
+                res = calculate_score(features).to_dict('r')[0]
+            else:
+                res = features
+
             res['website'] = df['website'].values[0]
 
             df_res = pd.concat([df_res, pd.DataFrame(res, index=[i+1-start])], sort=False)
