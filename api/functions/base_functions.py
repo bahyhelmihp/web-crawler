@@ -534,7 +534,8 @@ def calculate_score(features):
     req = requests.post(url, data=data, headers=headers).text
     score = float(req)
 
-    df['fraud_score'] = score
+    df['prediction_prob'] = score
+    df['prediction_class'] = 1 if score >= 0.5 else 0
     res = df
 
     return res

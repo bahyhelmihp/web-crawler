@@ -23,10 +23,10 @@ def batch_process(url, start, end, name, train):
     df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "link_contact_us_exist": [], \
             "cu_email_exist": [], "cu_phone_number_exist": [], "link_about_us_exist": [],\
             "link_tnc_exist": [], "tnc_refund_policy_exist": [], "contact_us_score": [], \
-            "tnc_score": [], "links_response": [], "website": [], "fraud_score": []})
+            "tnc_score": [], "links_response": [], "website": [], "prediction_score": [], "prediction_prob": []})
 
     if train == 'true':
-        df_res.drop("fraud_score", axis=1, inplace=True)
+        df_res.drop(["prediction_score", "prediction_prob"], axis=1, inplace=True)
     
     input_df = input_df.reset_index()
     try:
