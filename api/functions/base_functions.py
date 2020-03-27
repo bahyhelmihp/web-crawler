@@ -17,6 +17,7 @@ from flask import request, jsonify
 from selenium import webdriver
 import time
 import json
+from selenium.common.exceptions import TimeoutException
 nltk.download("stopwords")
 
 driver = webdriver.Chrome()
@@ -83,7 +84,7 @@ def get_hyperlinks(url):
     base_url = url_format_handler(url)
     session = HTMLSession()
     try:
-        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=20)
+        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=30)
         res = list(r.html.absolute_links)
         
         ## If r-html anchor failed, concate manually
@@ -119,24 +120,30 @@ def get_hyperlinks_dynamic(url):
     global hyperlinks_dynamic
     global dynamic_links
     
-    try:
-        ## Do not gather (again) if has been gathered before
-        if hyperlinks_dynamic == True:
-            print("- Using previously gathered hyperlinks")
-            links = dynamic_links
-        else:
+    ## Do not gather (again) if has been gathered before
+    if hyperlinks_dynamic == True:
+        print("- Using previously gathered hyperlinks")
+        links = dynamic_links
+    else:
+        try:
             print("- Gathering hyperlinks dynamically")
-            driver.set_page_load_timeout(20)
+            driver.set_page_load_timeout(300)
             driver.get(url)
+        except TimeoutException as e:
+            print(e)
+            reset_crawler()
+
+        try:
             soup = bs(driver.page_source, 'html.parser')
             links = soup.find_all("a")
 
             ## Set to true, collect hyperlinks
             hyperlinks_dynamic = True
-            dynamic_links = links
-    except Exception as e:
-        print(e)
-        links = []
+            dynamic_links = links            
+            
+        except Exception as e:
+            print(e)
+            links = []
 
     return links
 
@@ -153,6 +160,7 @@ def email_matcher(paragraf):
     email_match = re.search(r'[\w\.-]+(@|\[at])[\w\.-]+', paragraf)
 
     if email_match is not None:
+        print("Email: %s" % email_match.group(0))
         return 1
     else:
         return 0
@@ -161,6 +169,7 @@ def telephone_matcher(paragraf):
     telephone_match = re.search(r'(\d{3,5}[-\.\s]??\d{3,5}[-\.\s]??\d{3,5}|\(\d{3,5}\)\s*\d{3,5}[-\.\s]??\d{3,5}|\d{3,5}[-\.\s]??\d{3,5})',\
                                    paragraf)
     if telephone_match is not None:
+        print("Phone Number: %s" % telephone_match.group(0))
         return 1
     else:
         return 0
@@ -169,6 +178,8 @@ def refund_policy_matcher(paragraf):
     keyword_refund = ['refunds', 'refund', 'refund policy', 'return', 'returns', 'return policy', \
                             'pengembalian', 'pengembalian dana', 'mengembalikan dana', 'dikembalikan', 'kembali',\
                             'pengembalian uang', 'mengembalikan', 'retur', 'tukar', 'penukaran']
+    
+    ## Tokenizing & cleaning paragraf into words
     try:
         lang = 'indonesian' if tb(paragraf).detect_language() == 'id' else 'english'
         tokenizer = RegexpTokenizer(r'\w+')
@@ -193,7 +204,7 @@ def refund_policy_matcher(paragraf):
 
 def paragraf_extractor(url):
     try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=20)
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=30)
         soup = bs(page.content, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
         + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
@@ -240,8 +251,13 @@ def paragraf_extractor(url):
 def paragraf_extractor_dynamic(url):
     try:
         print("- Extracting paragraphs dynamically")
-        driver.set_page_load_timeout(20)
+        driver.set_page_load_timeout(300)
         driver.get(url)
+    except TimeoutException as e:
+        print(e)
+        reset_crawler()
+
+    try:
         soup = bs(driver.page_source, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
         + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
@@ -312,11 +328,13 @@ def broken_link_score(df, hyperlinks):
     if len(hyperlinks) == 1 and hyperlinks[0] == "":
         links = "No hyperlinks gathered"
     else:
+        ## Get all response code from sampled links
         for response in rs_res:
             try:
                 links[response.request.url] = str(response)
             except Exception as e:
                 print(e)
+                ## No response/timeout return this
                 links[hyperlinks[i]] = 'No Response/Timeout'
             i += 1
 
@@ -346,8 +364,11 @@ def about_us_check(df, hyperlinks):
     about_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_about)) \
     & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
     about_count = 1 if np.count_nonzero(np.array(hyperlinks)[about_mask]) >= 1 else 0
+
+    if about_count == 1:
+        print("About Us Link: %s" % np.array(hyperlinks)[about_mask][0]) 
     
-    ## Check for inexact link
+    ## Check for inexact link (e.g. http://www.nyetak.id/PAGE02, while PAGE02 actually an About Us page)
     try:
         if about_count < 1:
            base_url = str(df['website'].values[0])
@@ -356,6 +377,7 @@ def about_us_check(df, hyperlinks):
                for a in links:
                     ## About Us Link Finder
                     if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_about)).any():
+                        print("About Us Link: %s" % a)
                         about_count = 1
     except Exception as e:
         print(e)
@@ -368,7 +390,7 @@ def about_us_check(df, hyperlinks):
     return res_df
 
 def contact_us_score(df, hyperlinks):
-    """Return score (percentage) of contact us component in a website"""
+    """Return scoring of contact us component in a website"""
 
     print("Checking contact us...")
     keyword_contact = ["contact", "kontak", "call", "hubungi"]
@@ -390,6 +412,7 @@ def contact_us_score(df, hyperlinks):
     if len(contact_links) > 0:
         for link in contact_links:
             paragraf = paragraf_extractor(link)
+            print("Contact Us Link: %s" % link)
 
             exists[0] = 1 if email_matcher(paragraf) == 1 else exists[0]
             exists[1] = 1 if telephone_matcher(paragraf) == 1 else exists[1]
@@ -430,6 +453,7 @@ def contact_us_score(df, hyperlinks):
                 if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
                     try:
                         link = base_url + "/" + a['href']
+                        print("Contact Us Link: %s" % link)
                         exists[2] = 1
 
                         ## Search for cu features
@@ -451,7 +475,7 @@ def contact_us_score(df, hyperlinks):
     return res_df
 
 def tnc_score(df, hyperlinks):
-    """Return score (percentage) of tnc component in a website"""
+    """Return scoring of tnc component in a website"""
 
     print("Checking TnC...")
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
@@ -477,6 +501,7 @@ def tnc_score(df, hyperlinks):
         ## Check on all tnc links
         for link in tnc_links:
             paragraf = paragraf_extractor(link)
+            print("TnC Link: %s" % link)
             exists[0] = 1 if refund_policy_matcher(paragraf) == 1 else exists[0]
 
     ## Check refund policy on HomePage
@@ -497,6 +522,7 @@ def tnc_score(df, hyperlinks):
                     & ~pd.Series(str(a)).str.lower().str.contains('|'.join(avoid))).any():
                     try:
                         link = base_url + "/" + a['href']
+                        print("TnC Link: %s" % link)
                         exists[1] = 1
 
                         ## Search for refund_policy features
@@ -518,7 +544,7 @@ def tnc_score(df, hyperlinks):
 def calculate_score(features):
     """Return fraud prediction score of a website, 0-100 (Good - Bad)"""
     
-    ## Post API URL
+    ## Post API URL, change the URL to the host site URL
     url = 'http://127.0.0.1:5000/api/v1/model'
     
     ## Process Test Data
