@@ -84,13 +84,13 @@ def url_format_handler(url):
     ## Adding schema
     ## Change all URL without schema to https
     if not url.lower().startswith("http") and not url.lower().startswith("https"):  ## no http/https
-        url = "https://" + url
+        url = "https://" + url.lower()
     ## Change all http URL to https
     if url.lower().startswith("http") and not url.lower().startswith("https"):  ## no https
-        url = "https://" + url.split("http://")[1]
+        url = "https://" + url.lower().split("http://")[1]
     ## Remove backslash at the end of url
     if url.endswith("/"):
-        url = url[:-1]
+        url = url.lower()[:-1]
 
     return url
 
@@ -145,7 +145,7 @@ def get_hyperlinks_dynamic(url):
             links, texts = dynamic_links, dynamic_texts
         else:
             print("- Gathering hyperlinks dynamically")
-            driver.set_page_load_timeout(20)
+            driver.set_page_load_timeout(60)
             driver.get(url)
             elems = driver.find_elements_by_xpath("//a[@href]")
             links = []
@@ -270,7 +270,7 @@ def paragraf_extractor(url):
 def paragraf_extractor_dynamic(url):
     try:
         print("- Extracting paragraphs dynamically")
-        driver.set_page_load_timeout(20)
+        driver.set_page_load_timeout(60)
         driver.get(url)
         soup = bs(driver.page_source, 'html.parser')
 
