@@ -23,10 +23,10 @@ def batch_process(url, start, end, name, train):
     df_res = pd.DataFrame({"merchant_name": [], "broken_link_score": [], "link_contact_us_exist": [], \
             "cu_email_exist": [], "cu_phone_number_exist": [], "link_about_us_exist": [],\
             "link_tnc_exist": [], "tnc_refund_policy_exist": [], "contact_us_score": [], \
-            "tnc_score": [], "links_response": [], "website": [], "prediction_score": [], "prediction_prob": []})
+            "tnc_score": [], "links_response": [], "website": [], "prediction_class": [], "prediction_prob": [], "time_taken": []})
 
     if train == 'true':
-        df_res.drop(["prediction_score", "prediction_prob"], axis=1, inplace=True)
+        df_res.drop(["prediction_class", "prediction_prob"], axis=1, inplace=True)
     
     input_df = input_df.reset_index()
     try:
@@ -45,7 +45,7 @@ def batch_process(url, start, end, name, train):
            
             broken_df = broken_link_score(df, hyperlinks)
             ## Recheck Broken Links
-            if broken_df['broken_link_score'].values[0] == 100:
+            if broken_df['broken_link_score'].values[0] == 1:
                 broken_df = broken_link_score(df, hyperlinks)
 
             about_df = about_us_check(df, hyperlinks)
@@ -64,6 +64,7 @@ def batch_process(url, start, end, name, train):
                 res = features
 
             res['website'] = df['website'].values[0]
+            res['time_taken'] = time.time() - start_time
 
             df_res = pd.concat([df_res, pd.DataFrame(res, index=[i+1-start])], sort=False)
             res_url = './datasets/' + name + '.csv'

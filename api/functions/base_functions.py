@@ -18,11 +18,14 @@ from selenium import webdriver
 import time
 import json
 from selenium.common.exceptions import TimeoutException
+import urllib3
 nltk.download("stopwords")
+urllib3.disable_warnings()
 
 driver = webdriver.Chrome()
 hyperlinks_dynamic = False
 dynamic_links = []
+dynamic_texts = []
 
 user_agent_list = [
 
@@ -58,12 +61,19 @@ def reset_crawler():
     global driver
     global hyperlinks_dynamic
     global dynamic_links
+    global dynamic_texts
 
     ## Quit driver
+    driver.close()
     driver.quit()
-    driver = webdriver.Chrome()
+
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--ignore-certificate-errors')
+
+    driver = webdriver.Chrome(chrome_options=chrome_options)    
     hyperlinks_dynamic = False
     dynamic_links = []
+    dynamic_texts = []
 
 def url_format_handler(url):
     """Return url with http/https prefix if not written"""
@@ -72,8 +82,15 @@ def url_format_handler(url):
     url = url.strip()
 
     ## Adding schema
-    if not url.lower().startswith("http") and not url.lower().startswith("https"):
-        url = "http://" + url
+    ## Change all URL without schema to https
+    if not url.lower().startswith("http") and not url.lower().startswith("https"):  ## no http/https
+        url = "https://" + url
+    ## Change all http URL to https
+    if url.lower().startswith("http") and not url.lower().startswith("https"):  ## no https
+        url = "https://" + url.split("http://")[1]
+    ## Remove backslash at the end of url
+    if url.endswith("/"):
+        url = url[:-1]
 
     return url
 
@@ -84,7 +101,7 @@ def get_hyperlinks(url):
     base_url = url_format_handler(url)
     session = HTMLSession()
     try:
-        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=30)
+        r = session.get(base_url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=30, verify=False)
         res = list(r.html.absolute_links)
         
         ## If r-html anchor failed, concate manually
@@ -119,33 +136,35 @@ def get_hyperlinks(url):
 def get_hyperlinks_dynamic(url):
     global hyperlinks_dynamic
     global dynamic_links
-    
-    ## Do not gather (again) if has been gathered before
-    if hyperlinks_dynamic == True:
-        print("- Using previously gathered hyperlinks")
-        links = dynamic_links
-    else:
-        try:
-            print("- Gathering hyperlinks dynamically")
-            driver.set_page_load_timeout(300)
-            driver.get(url)
-        except TimeoutException as e:
-            print(e)
-            reset_crawler()
+    global dynamic_texts
 
-        try:
-            soup = bs(driver.page_source, 'html.parser')
-            links = soup.find_all("a")
+    try:
+        ## Do not gather (again) if has been gathered before
+        if hyperlinks_dynamic == True:
+            print("- Using previously gathered hyperlinks")
+            links, texts = dynamic_links, dynamic_texts
+        else:
+            print("- Gathering hyperlinks dynamically")
+            driver.set_page_load_timeout(20)
+            driver.get(url)
+            elems = driver.find_elements_by_xpath("//a[@href]")
+            links = []
+            texts = []
+            for elem in elems:
+                links.append(elem.get_attribute("href"))
+                texts.append(elem.text)
 
             ## Set to true, collect hyperlinks
             hyperlinks_dynamic = True
-            dynamic_links = links            
-            
-        except Exception as e:
-            print(e)
-            links = []
+            dynamic_links = links
+            dynamic_texts = texts
+    except Exception as e:
+        reset_crawler()
+        print(e)
+        links = []
+        texts = []
 
-    return links
+    return links, texts
 
 def decode_email(e):
     de = ""
@@ -204,7 +223,7 @@ def refund_policy_matcher(paragraf):
 
 def paragraf_extractor(url):
     try:
-        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=30)
+        page = requests.get(url, headers = {'User-Agent': np.random.choice(user_agent_list)}, timeout=30, verify=False)
         soup = bs(page.content, 'html.parser')
         all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
         + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
@@ -251,21 +270,21 @@ def paragraf_extractor(url):
 def paragraf_extractor_dynamic(url):
     try:
         print("- Extracting paragraphs dynamically")
-        driver.set_page_load_timeout(300)
+        driver.set_page_load_timeout(20)
         driver.get(url)
-    except TimeoutException as e:
-        print(e)
-        reset_crawler()
-
-    try:
         soup = bs(driver.page_source, 'html.parser')
-        all_ps = soup.find_all("p") + soup.find_all("em") + soup.find_all("li") + soup.find_all("address")\
-        + soup.find_all("h1") + soup.find_all("h2") + soup.find_all("h3") + soup.find_all("h4") + soup.find_all("h5")\
-        + soup.find_all("h6") + soup.find_all("a") + soup.find_all("strong")
 
-        list_p = []
+        all_ps = driver.find_elements_by_tag_name("p") + driver.find_elements_by_tag_name(
+            "em") + driver.find_elements_by_tag_name("li") + driver.find_elements_by_tag_name("address") \
+                 + driver.find_elements_by_tag_name("h1") + driver.find_elements_by_tag_name(
+            "h2") + driver.find_elements_by_tag_name("h3") + driver.find_elements_by_tag_name(
+            "h4") + driver.find_elements_by_tag_name("h5") \
+                 + driver.find_elements_by_tag_name("h6") + driver.find_elements_by_tag_name(
+            "a") + driver.find_elements_by_tag_name("strong") + driver.find_elements_by_tag_name("span")
+
+        texts = []
         for p in all_ps:
-            list_p.append(unidecode.unidecode(p.getText()) + "\n")
+            texts.append(p.text + "\n")
 
         ## CloudFare Email Getter
         if re.search('data-cfemail', str(soup)) is not None:
@@ -276,26 +295,27 @@ def paragraf_extractor_dynamic(url):
 
         ## Meta Getter
         meta_property = soup.find("meta", property="og:description")
-        meta_name = soup.find("meta", {"name":"description"})
+        meta_name = soup.find("meta", {"name": "description"})
 
         if meta_property is not None:
             meta_property = soup.find("meta", property="og:description")["content"]
         else:
             meta_property = ""
         if meta_name is not None:
-            meta_name = soup.find("meta", {"name":"description"})["content"]
+            meta_name = soup.find("meta", {"name": "description"})["content"]
         else:
             meta_name = ""
 
         ## Div Address Getter
-        div_address = str(soup.find("div", {"class":'address'}))
+        div_address = str(soup.find("div", {"class": 'address'}))
         if div_address is None:
             div_address = ""
 
-        paragraf = "".join(list_p)
+        paragraf = "".join(texts)
         paragraf += meta_property + meta_name + email + div_address
         paragraf = paragraf.lower()
     except Exception as e:
+        reset_crawler()
         print(e)
         paragraf = ""
 
@@ -320,7 +340,7 @@ def broken_link_score(df, hyperlinks):
         hyperlinks = sample(hyperlinks, 10)
     rs = (grequests.get(x, \
         headers = {}, \
-        timeout=20) for x in hyperlinks)
+        timeout=20, verify=False) for x in hyperlinks)
     rs_res = grequests.map(rs, size = 3)
     
     links = {}
@@ -347,7 +367,7 @@ def broken_link_score(df, hyperlinks):
         print(e)
         score = 100
 
-    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": score,\
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": 0 if score < 50 else 1,\
                            "links_response": str(links)}, index=[0])
 
     print("Broken links checked.\n")
@@ -360,54 +380,55 @@ def about_us_check(df, hyperlinks):
     print("Checking about us...")
     keyword_about = ["about", "tentang"]
     avoid = ["conditioner", "termurah", "termahal", "expired", "expire", "renewal"]
-    
+
     about_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_about)) \
-    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
+                 & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
     about_count = 1 if np.count_nonzero(np.array(hyperlinks)[about_mask]) >= 1 else 0
 
     if about_count == 1:
-        print("About Us Link: %s" % np.array(hyperlinks)[about_mask][0]) 
-    
-    ## Check for inexact link (e.g. http://www.nyetak.id/PAGE02, while PAGE02 actually an About Us page)
+        print("About Us Link: %s" % np.array(hyperlinks)[about_mask][0])
+
+    ## Check for inexact link
     try:
         if about_count < 1:
-           base_url = str(df['website'].values[0])
-           links = get_hyperlinks_dynamic(url_format_handler(base_url))
-           if len(links) > 0:
-               for a in links:
+            base_url = str(df['website'].values[0])
+            links, texts = get_hyperlinks_dynamic(url_format_handler(base_url))
+            if len(links) > 0:
+                for i in range(len(links)):
                     ## About Us Link Finder
-                    if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_about)).any():
-                        print("About Us Link: %s" % a)
+                    if pd.Series(str(texts[i])).str.lower().str.contains('|'.join(keyword_about)).any():
+                        print("About Us Link: %s" % links[i])
                         about_count = 1
     except Exception as e:
         print(e)
         pass
 
-    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_about_us_exist": int(about_count)}, index=[0])
+    res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "link_about_us_exist": int(about_count)},
+                          index=[0])
 
     print("About us checked.\n")
 
     return res_df
 
 def contact_us_score(df, hyperlinks):
-    """Return scoring of contact us component in a website"""
+    """Return score (percentage) of contact us component in a website"""
 
     print("Checking contact us...")
     keyword_contact = ["contact", "kontak", "call", "hubungi"]
     avoid = ["conditioner", "termurah", "termahal"]
 
     contact_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_contact)) \
-    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
+                   & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
 
     ## Email, Telephon, Link
-    exists = [0,0,0]
-        
+    exists = [0, 0, 0]
+
     try:
         contact_links = list(pd.Series(hyperlinks)[contact_mask].values)
     except Exception as e:
         print(e)
         contact_links = []
-    
+
     ## Check on all contact links
     if len(contact_links) > 0:
         for link in contact_links:
@@ -444,15 +465,15 @@ def contact_us_score(df, hyperlinks):
 
     ## Try dynamic crawling if website cannot detect contact link / cu features
     if (len(contact_links) == 0 | exists[1] == 0 | exists[0] == 0) and len(hyperlinks) != 0:
-       ## Find Inexact Contact Link
-       base_url = str(df['website'].values[0])
-       links = get_hyperlinks_dynamic(url_format_handler(base_url))
-       if len(links) > 0:
-           for a in links:
+        ## Find Inexact Contact Link
+        base_url = str(df['website'].values[0])
+        links, texts = get_hyperlinks_dynamic(url_format_handler(base_url))
+        if len(links) > 0:
+            for i in range(len(links)):
                 ## Contact Link Filtering
-                if pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_contact)).any():
+                if pd.Series(str(texts[i])).str.lower().str.contains('|'.join(keyword_contact)).any():
                     try:
-                        link = base_url + "/" + a['href']
+                        link = links[i]
                         print("Contact Us Link: %s" % link)
                         exists[2] = 1
 
@@ -464,7 +485,7 @@ def contact_us_score(df, hyperlinks):
                         print(e)
                         continue
 
-    score = np.count_nonzero(np.array(exists))/len(exists)*100
+    score = np.count_nonzero(np.array(exists)) / len(exists) * 100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "contact_us_score": score, \
                            "cu_email_exist": int(exists[0]), "cu_phone_number_exist": int(exists[1]), \
@@ -475,7 +496,7 @@ def contact_us_score(df, hyperlinks):
     return res_df
 
 def tnc_score(df, hyperlinks):
-    """Return scoring of tnc component in a website"""
+    """Return score (percentage) of tnc component in a website"""
 
     print("Checking TnC...")
     keyword_tnc = ["terms", "term", "syarat", "ketentuan", "condition", \
@@ -485,7 +506,7 @@ def tnc_score(df, hyperlinks):
     avoid = ["conditioner", "termurah", "termahal", "expired", "expire", "renewal"]
 
     tnc_mask = pd.Series(hyperlinks).str.lower().str.contains('|'.join(keyword_tnc)) \
-    & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
+               & ~pd.Series(hyperlinks).str.lower().str.contains('|'.join(avoid))
 
     try:
         tnc_links = pd.Series(hyperlinks)[tnc_mask].values
@@ -494,7 +515,7 @@ def tnc_score(df, hyperlinks):
         tnc_links = []
 
     ## Refund Policy, Link
-    exists = [0,0]
+    exists = [0, 0]
 
     if len(tnc_links) > 0:
         exists[1] = 1
@@ -512,16 +533,16 @@ def tnc_score(df, hyperlinks):
 
     ## Try dynamic crawling if website cannot detect tnc link / refund policy
     if (len(tnc_links) == 0 | exists[0] == 0) and len(hyperlinks) != 0:
-       ## Find Inexact TnC Link
-       base_url = str(df['website'].values[0])
-       links = get_hyperlinks_dynamic(url_format_handler(base_url))
-       if len(links) > 0:
-           for a in links:
+        ## Find Inexact TnC Link
+        base_url = str(df['website'].values[0])
+        links, texts = get_hyperlinks_dynamic(url_format_handler(base_url))
+        if len(links) > 0:
+            for i in range(len(links)):
                 ## TnC Link Filtering
-                if (pd.Series(str(a)).str.lower().str.contains('|'.join(keyword_tnc)) \
-                    & ~pd.Series(str(a)).str.lower().str.contains('|'.join(avoid))).any():
+                if (pd.Series(str(texts[i])).str.lower().str.contains('|'.join(keyword_tnc)) \
+                    & ~pd.Series(str(texts[i])).str.lower().str.contains('|'.join(avoid))).any():
                     try:
-                        link = base_url + "/" + a['href']
+                        link = links[i]
                         print("TnC Link: %s" % link)
                         exists[1] = 1
 
@@ -532,7 +553,7 @@ def tnc_score(df, hyperlinks):
                         print(e)
                         continue
 
-    score = np.count_nonzero(np.array(exists))/len(exists)*100
+    score = np.count_nonzero(np.array(exists)) / len(exists) * 100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "tnc_score": score, \
                            "tnc_refund_policy_exist": int(exists[0]), "link_tnc_exist": int(exists[1])}, index=[0])
@@ -549,7 +570,7 @@ def calculate_score(features):
     
     ## Process Test Data
     df = pd.DataFrame(features, index=[0])
-    columns = ['link_contact_us_exist', 'cu_email_exist',\
+    columns = ['broken_link_score','link_contact_us_exist', 'cu_email_exist',\
     'cu_phone_number_exist', 'link_about_us_exist', 'link_tnc_exist',\
     'tnc_refund_policy_exist']
     test_df = df[columns]
@@ -566,7 +587,7 @@ def calculate_score(features):
 
     return res
 
-def orchestrator(url):
+def run_crawler(url):
 
     start_time = time.time()
     print("\n--- " + url + " ---")
@@ -576,7 +597,7 @@ def orchestrator(url):
         hyperlinks = get_hyperlinks(url)
 
     broken_df = broken_link_score(df, hyperlinks)
-    if broken_df['broken_link_score'].values[0] == 100:
+    if broken_df['broken_link_score'].values[0] == 1:
                 broken_df = broken_link_score(df, hyperlinks)
 
     about_df = about_us_check(df, hyperlinks)

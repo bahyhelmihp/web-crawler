@@ -2,7 +2,7 @@ from gevent import monkey
 monkey.patch_all()
 import flask
 from flask import request, jsonify
-from functions.base_functions import orchestrator
+from functions.base_functions import run_crawler
 from functions.batch_processor import batch_process
 import numpy as np
 import pickle as p
@@ -28,7 +28,7 @@ def api_url():
         return "Error: No url field provided. Please specify an url."
 
     # Create an empty list for our results
-    results = orchestrator(url)
+    results = run_crawler(url)
     
     return jsonify(results)
 
@@ -81,6 +81,6 @@ def make_prediction():
     return res
 
 if __name__ == "__main__":
-    modelfile = 'models/final_prediction.pickle'
+    modelfile = 'models/model.pickle'
     model = p.load(open(modelfile, 'rb'))
     app.run(host='0.0.0.0')
