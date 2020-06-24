@@ -22,11 +22,6 @@ import urllib3
 nltk.download("stopwords")
 urllib3.disable_warnings()
 
-driver = webdriver.Chrome()
-hyperlinks_dynamic = False
-dynamic_links = []
-dynamic_texts = []
-
 user_agent_list = [
 
     #Chrome
@@ -56,8 +51,13 @@ user_agent_list = [
     'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
 ]
+
+driver = webdriver.Chrome()
+hyperlinks_dynamic = False
+dynamic_links = []
+dynamic_texts = []
     
-def reset_crawler():
+def reset_browser():
     global driver
     global hyperlinks_dynamic
     global dynamic_links
@@ -159,7 +159,7 @@ def get_hyperlinks_dynamic(url):
             dynamic_links = links
             dynamic_texts = texts
     except Exception as e:
-        reset_crawler()
+        reset_browser()
         print(e)
         links = []
         texts = []
@@ -315,16 +315,21 @@ def paragraf_extractor_dynamic(url):
         paragraf += meta_property + meta_name + email + div_address
         paragraf = paragraf.lower()
     except Exception as e:
-        reset_crawler()
+        reset_browser()
         print(e)
         paragraf = ""
 
     return paragraf
 
 def broken_link_score(df, hyperlinks):
-    """Return score (percentage) of broken link in a website"""
+    """ Return score of broken link in a website 
+        1 for >= 50 %
+        0 for < 50 %
+    """
 
     print("Checking broken link...")
+
+    ## Avoid extraction of external links
     avoid = pd.Series(hyperlinks).str.contains("wa.me") | pd.Series(hyperlinks).str.contains("youtube") | \
     pd.Series(hyperlinks).str.contains("linkedin") | pd.Series(hyperlinks).str.contains("facebook") | \
     pd.Series(hyperlinks).str.contains("cloudflare") | pd.Series(hyperlinks).str.contains("twitter") | \
@@ -334,10 +339,13 @@ def broken_link_score(df, hyperlinks):
     pd.Series(hyperlinks).str.contains("Tel") | pd.Series(hyperlinks).str.contains("jobstreet") | \
     pd.Series(hyperlinks).str.contains("download") | pd.Series(hyperlinks).str.contains("google") | \
     pd.Series(hyperlinks).str.contains("javaScript") | pd.Series(hyperlinks).str.contains("_blank")
-
     hyperlinks = list(pd.Series(hyperlinks)[~avoid].values)
+
+    ## If length of hyperlinks collected > 10, do sampling
     if len(hyperlinks) > 10:
         hyperlinks = sample(hyperlinks, 10)
+
+    ## Send request
     rs = (grequests.get(x, \
         headers = {}, \
         timeout=20, verify=False) for x in hyperlinks)
@@ -362,6 +370,7 @@ def broken_link_score(df, hyperlinks):
     status_length = len(rs_res)
 
     try:
+        ## Do scoring
         score = status_not_ok/status_length*100
     except Exception as e:
         print(e)
@@ -594,7 +603,7 @@ def run_crawler(url):
     df = pd.DataFrame({"merchant_name": url, "website": url}, index=[0])
     hyperlinks = get_hyperlinks(url)
     if len(hyperlinks) == 0:
-        hyperlinks = get_hyperlinks(url)
+        hyperlinks = get_hyperlinks_dynamic(url)
 
     broken_df = broken_link_score(df, hyperlinks)
     if broken_df['broken_link_score'].values[0] == 1:
@@ -609,6 +618,6 @@ def run_crawler(url):
     features = pd.concat(dfs, axis=1).reset_index().to_dict('r')[0]
     print("--- Time taken: %s seconds ---\n" % (time.time() - start_time))
     res = calculate_score(features).to_dict('r')[0]
-    reset_crawler()
+    reset_browser()
 
     return res
