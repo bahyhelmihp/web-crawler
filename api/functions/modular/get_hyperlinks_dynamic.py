@@ -1,8 +1,5 @@
 def get_hyperlinks_dynamic(url):
-    global hyperlinks_dynamic
-    global dynamic_links
-    global dynamic_texts
-
+    global hyperlinks_dynamic, dynamic_links, dynamic_texts
     try:
         ## Do not gather (again) if has been gathered before
         if hyperlinks_dynamic == True:
@@ -18,15 +15,11 @@ def get_hyperlinks_dynamic(url):
             for elem in elems:
                 links.append(elem.get_attribute("href"))
                 texts.append(elem.text)
-
             ## Set to true, collect hyperlinks
             hyperlinks_dynamic = True
-            dynamic_links = links
-            dynamic_texts = texts
+            dynamic_links, dynamic_texts = links, texts
     except Exception as e:
         reset_browser()
         print(e)
-        links = []
-        texts = []
-
+        links, texts = [], []
     return links, texts

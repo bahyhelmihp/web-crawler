@@ -3,18 +3,14 @@ chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--ignore-certificate-errors')
 driver = webdriver.Chrome(chrome_options=chrome_options)
 hyperlinks_dynamic = False
-dynamic_links = []
-dynamic_texts = []
+dynamic_links, dynamic_texts = [], []
 
 ## Reset ChromeDriver function    
 def reset_browser():
-    ''' Browser will be reset if an exception occurs when running di WebDriver 
-        and will be reset after one crawling job finished '''
+    ''' Browser will be reset if an exception occurs when running di WebDriver and will be reset after one crawling job finished '''
 
-    global driver
-    global hyperlinks_dynamic
-    global dynamic_links
-    global dynamic_texts
+    global driver, hyperlinks_dynamic
+    global dynamic_links, dynamic_texts
 
     ## Quit driver
     driver.close()
@@ -25,5 +21,4 @@ def reset_browser():
 
     driver = webdriver.Chrome(chrome_options=chrome_options)    
     hyperlinks_dynamic = False
-    dynamic_links = []
-    dynamic_texts = []
+    dynamic_links, dynamic_texts = [], []
