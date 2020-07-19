@@ -10,7 +10,7 @@ import pandas as pd
 import json
 
 app = flask.Flask(__name__)
-app.config["DEBUG"] = False
+app.config["DEBUG"] = True
 
 @app.route('/', methods=['GET'])
 def home():

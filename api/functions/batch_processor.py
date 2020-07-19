@@ -69,7 +69,7 @@ def batch_process(url, start, end, name, train):
             df_res = pd.concat([df_res, pd.DataFrame(res, index=[i+1-start])], sort=False)
             res_url = './datasets/' + name + '.csv'
             df_res.to_csv(res_url)
-            reset_crawler()
+            reset_browser()
             
 
         print("\n--- Start Batch: %s ---" % batch_start_time.strftime("%Y-%m-%d %H:%M:%S"))

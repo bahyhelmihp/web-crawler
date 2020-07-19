@@ -52,7 +52,9 @@ user_agent_list = [
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
 ]
 
-driver = webdriver.Chrome()
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--headless")
+driver = webdriver.Chrome(options=chrome_options)
 hyperlinks_dynamic = False
 dynamic_links = []
 dynamic_texts = []
@@ -176,8 +178,7 @@ def decode_email(e):
     return de
 
 def email_matcher(paragraf):
-    email_match = re.search(r'[\w\.-]+(@|\[at])[\w\.-]+', paragraf)
-
+    email_match = re.search(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', paragraf)
     if email_match is not None:
         print("Email: %s" % email_match.group(0))
         return 1
@@ -185,7 +186,7 @@ def email_matcher(paragraf):
         return 0
 
 def telephone_matcher(paragraf):
-    telephone_match = re.search(r'(\d{3,5}[-\.\s]??\d{3,5}[-\.\s]??\d{3,5}|\(\d{3,5}\)\s*\d{3,5}[-\.\s]??\d{3,5}|\d{3,5}[-\.\s]??\d{3,5})',\
+    telephone_match = re.search(r'(\+62)?0?(8|2)(\d{2}|\d{1})(\d{8})',\
                                    paragraf)
     if telephone_match is not None:
         print("Phone Number: %s" % telephone_match.group(0))
@@ -359,21 +360,21 @@ def broken_link_score(df, hyperlinks):
         ## Get all response code from sampled links
         for response in rs_res:
             try:
-                links[response.request.url] = str(response)
+                if response == None:
+                    continue
+                else:
+                    links[response.request.url] = str(response)
             except Exception as e:
                 print(e)
                 ## No response/timeout return this
                 links[hyperlinks[i]] = 'No Response/Timeout'
             i += 1
-
-    status_not_ok = np.count_nonzero(np.array(rs_res, dtype=str) != '<Response [200]>')
-    status_length = len(rs_res)
-
-    try:
+    if links != "No hyperlinks gathered":
+        status_not_ok = np.count_nonzero(np.array(links.values(), dtype=str) != '<Response [200]>')
+        status_length = len(links)
         ## Do scoring
         score = status_not_ok/status_length*100
-    except Exception as e:
-        print(e)
+    else:
         score = 100
 
     res_df = pd.DataFrame({"merchant_name": df['merchant_name'].values[0], "broken_link_score": 0 if score < 50 else 1,\
