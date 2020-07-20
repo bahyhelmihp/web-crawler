@@ -186,7 +186,7 @@ def email_matcher(paragraf):
         return 0
 
 def telephone_matcher(paragraf):
-    telephone_match = re.search(r'(\+62)?0?(8|2)(\d{2}|\d{1})(\d{8})',\
+    telephone_match = re.search(r'(\+62)?0?(8|2)(\d{2}|\d{1})(\-|\s|.)(\d{8}|\d{7}|\d{2}(\-|\s)\d{3}(\-|\s)\d{3}|\d{3}(\-|\s)\d{3}(\-|\s)\d{2}|\d{3}(\-|\s)\d{2}(\-|\s)\d{3})',\
                                    paragraf)
     if telephone_match is not None:
         print("Phone Number: %s" % telephone_match.group(0))
