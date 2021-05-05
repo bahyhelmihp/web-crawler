@@ -13,6 +13,7 @@ A web crawler machine to asses fraud level of a merchant website based on its si
 - python3 api.py
 
 ### Docs
+- [Thesis](https://lontar.cs.ui.ac.id/Lontar/opac/themes/newui/detail.jsp?id=48219&lokasi=lokal#) (Softcopy & Hardcopy available upon request)
 - [API Documentation](https://github.com/bahyhelmihp/web-crawler/blob/master/api_documentation.pdf)
 - [Model Feature Documentation](https://github.com/bahyhelmihp/web-crawler/blob/master/features_documentation.pdf)
 - [Task Documentation](https://github.com/bahyhelmihp/web-crawler/blob/master/task_documentation.pdf)
