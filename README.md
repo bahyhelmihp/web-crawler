@@ -1,5 +1,5 @@
 ## Online Merchant Web Crawler
-A web crawler machine to asses fraud level of a merchant website based on its site structure. Designed to work on all e-commerce websites. Developed on behalf of a joined research between PT Nusa Satu Inti Artha (DOKU) and Fasilkom UI to accomplish my undergraduate thesis.
+A web crawler machine to asses fraud level of a merchant website based on its site structure. Designed to work on all e-commerce websites. Developed on behalf of a joined research between [PT Nusa Satu Inti Artha (DOKU)](https://www.doku.com/en-US) and Fasilkom UI to accomplish my undergraduate thesis.
 
 ### Installation Guide
 
