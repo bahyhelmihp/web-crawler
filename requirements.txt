@@ -10,5 +10,5 @@ textblob
 nltk
 flask
 selenium
-sklearn
+scikit-learn
 xgboost
